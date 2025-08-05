@@ -1,0 +1,130 @@
+CREATE TABLE brigada (
+  id INT IDENTITY PRIMARY KEY,
+  nombre VARCHAR(120) NOT NULL,
+  cantidadactivos INT NOT NULL DEFAULT 0,
+  celularcomandante VARCHAR(30) NULL,
+  encargadologistica VARCHAR(120) NULL,
+  celularlogistica VARCHAR(30) NULL,
+  numerosemergencia VARCHAR(30) NULL
+);
+
+CREATE TABLE epp_ropa (
+  id INT IDENTITY PRIMARY KEY,
+  brigadaid INT NOT NULL,
+  item VARCHAR(80) NOT NULL,
+  xs INT NOT NULL DEFAULT 0,
+  s INT NOT NULL DEFAULT 0,
+  m INT NOT NULL DEFAULT 0,
+  l INT NOT NULL DEFAULT 0,
+  xl INT NOT NULL DEFAULT 0,
+  observaciones VARCHAR(400) NULL,
+  FOREIGN KEY (brigadaid) REFERENCES brigada(id)
+);
+
+CREATE TABLE botas (
+  id INT IDENTITY PRIMARY KEY,
+  brigadaid INT NOT NULL,
+  talla37 INT NOT NULL DEFAULT 0,
+  talla38 INT NOT NULL DEFAULT 0,
+  talla39 INT NOT NULL DEFAULT 0,
+  talla40 INT NOT NULL DEFAULT 0,
+  talla41 INT NOT NULL DEFAULT 0,
+  talla42 INT NOT NULL DEFAULT 0,
+  talla43 INT NOT NULL DEFAULT 0,
+  otratalla VARCHAR(80) NULL,
+  FOREIGN KEY (brigadaid) REFERENCES brigada(id)
+);
+
+CREATE TABLE guantes (
+  id INT IDENTITY PRIMARY KEY,
+  brigadaid INT NOT NULL,
+  xs INT NOT NULL DEFAULT 0,
+  s INT NOT NULL DEFAULT 0,
+  m INT NOT NULL DEFAULT 0,
+  l INT NOT NULL DEFAULT 0,
+  xl INT NOT NULL DEFAULT 0,
+  xxl INT NOT NULL DEFAULT 0,
+  otratalla VARCHAR(80) NULL,
+  FOREIGN KEY (brigadaid) REFERENCES brigada(id)
+);
+
+CREATE TABLE epp_equipo (
+  id INT IDENTITY PRIMARY KEY,
+  brigadaid INT NOT NULL,
+  item VARCHAR(120) NOT NULL,
+  cantidad INT NOT NULL DEFAULT 0,
+  observaciones VARCHAR(400) NULL,
+  FOREIGN KEY (brigadaid) REFERENCES brigada(id)
+);
+
+CREATE TABLE herramientas (
+  id INT IDENTITY PRIMARY KEY,
+  brigadaid INT NOT NULL,
+  item VARCHAR(120) NOT NULL,
+  cantidad INT NOT NULL DEFAULT 0,
+  observaciones VARCHAR(400) NULL,
+  FOREIGN KEY (brigadaid) REFERENCES brigada(id)
+);
+
+CREATE TABLE logistica_repuestos (
+  id INT IDENTITY PRIMARY KEY,
+  brigadaid INT NOT NULL,
+  item VARCHAR(120) NOT NULL,
+  costo DECIMAL(12,2) NOT NULL DEFAULT 0,
+  observaciones VARCHAR(400) NULL,
+  FOREIGN KEY (brigadaid) REFERENCES brigada(id)
+);
+
+CREATE TABLE alimentacion (
+  id INT IDENTITY PRIMARY KEY,
+  brigadaid INT NOT NULL,
+  item VARCHAR(120) NOT NULL,
+  cantidad INT NOT NULL DEFAULT 0,
+  observaciones VARCHAR(400) NULL,
+  FOREIGN KEY (brigadaid) REFERENCES brigada(id)
+);
+
+CREATE TABLE logistica_campo (
+  id INT IDENTITY PRIMARY KEY,
+  brigadaid INT NOT NULL,
+  item VARCHAR(120) NOT NULL,
+  cantidad INT NOT NULL DEFAULT 0,
+  observaciones VARCHAR(400) NULL,
+  FOREIGN KEY (brigadaid) REFERENCES brigada(id)
+);
+
+CREATE TABLE limpieza_personal (
+  id INT IDENTITY PRIMARY KEY,
+  brigadaid INT NOT NULL,
+  item VARCHAR(120) NOT NULL,
+  cantidad INT NOT NULL DEFAULT 0,
+  observaciones VARCHAR(400) NULL,
+  FOREIGN KEY (brigadaid) REFERENCES brigada(id)
+);
+
+CREATE TABLE limpieza_general (
+  id INT IDENTITY PRIMARY KEY,
+  brigadaid INT NOT NULL,
+  item VARCHAR(120) NOT NULL,
+  cantidad INT NOT NULL DEFAULT 0,
+  observaciones VARCHAR(400) NULL,
+  FOREIGN KEY (brigadaid) REFERENCES brigada(id)
+);
+
+CREATE TABLE medicamentos (
+  id INT IDENTITY PRIMARY KEY,
+  brigadaid INT NOT NULL,
+  item VARCHAR(160) NOT NULL,
+  cantidad INT NOT NULL DEFAULT 0,
+  observaciones VARCHAR(400) NULL,
+  FOREIGN KEY (brigadaid) REFERENCES brigada(id)
+);
+
+CREATE TABLE rescate_animal (
+  id INT IDENTITY PRIMARY KEY,
+  brigadaid INT NOT NULL,
+  item VARCHAR(120) NOT NULL,
+  cantidad INT NOT NULL DEFAULT 0,
+  observaciones VARCHAR(400) NULL,
+  FOREIGN KEY (brigadaid) REFERENCES brigada(id)
+);
