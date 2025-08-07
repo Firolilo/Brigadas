@@ -2,6 +2,7 @@ CREATE TABLE brigada (
   id INT IDENTITY PRIMARY KEY,
   nombre VARCHAR(120) NOT NULL,
   cantidadactivos INT NOT NULL DEFAULT 0,
+  nombrecomandante VARCHAR(120) NOT NULL,
   celularcomandante VARCHAR(30) NULL,
   encargadologistica VARCHAR(120) NULL,
   celularlogistica VARCHAR(30) NULL,

@@ -5,7 +5,7 @@ const config = {
     user: 'user',               // tu usuario
     password: 'user',           // tu contraseña
     server: 'localhost',        // o 'localhost\\SQLEXPRESS' si usas instancia nombrada
-    database: 'BRIGADAS',
+    database: 'BRIGADA',
     options: {
         encrypt: false,           // false para conexión local sin TLS
         trustServerCertificate: true // necesario si no usas certificado SSL
