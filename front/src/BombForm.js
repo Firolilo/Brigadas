@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:3002/api/brigada';
 
-// Section configuration with API endpoints and validation rules
+// Configuración de secciones con endpoints y reglas básicas
 const SECTIONS = [
     {
         id: 'info',
@@ -22,43 +22,43 @@ const SECTIONS = [
         id: 'tools',
         name: 'Herramientas',
         endpoint: '/herramientas',
-        fields: ['nombre', 'cantidad', 'observaciones']
+        fields: ['item', 'cantidad', 'observaciones']
     },
     {
         id: 'logistics',
         name: 'Logística Vehículos',
         endpoint: '/logistica-repuestos',
-        fields: ['tipo', 'descripcion', 'cantidad', 'observaciones']
+        fields: ['item', 'costo', 'observaciones']
     },
     {
         id: 'food',
         name: 'Alimentación',
         endpoint: '/alimentacion',
-        fields: ['tipo', 'descripcion', 'cantidad', 'observaciones']
+        fields: ['item', 'cantidad', 'observaciones']
     },
     {
         id: 'camp',
         name: 'Equipo de Campo',
         endpoint: '/logistica-campo',
-        fields: ['tipo', 'descripcion', 'cantidad', 'observaciones']
+        fields: ['item', 'cantidad', 'observaciones']
     },
     {
         id: 'hygiene',
-        name: 'Limpieza Personal',
+        name: 'Limpieza',
         endpoint: '/limpieza-personal',
-        fields: ['tipo', 'descripcion', 'cantidad', 'observaciones']
+        fields: ['item', 'cantidad', 'observaciones']
     },
     {
         id: 'meds',
         name: 'Medicamentos',
         endpoint: '/medicamentos',
-        fields: ['nombre', 'presentacion', 'cantidad', 'observaciones']
+        fields: ['item', 'cantidad', 'observaciones']
     },
     {
         id: 'animals',
         name: 'Rescate Animal',
         endpoint: '/rescate-animal',
-        fields: ['tipo', 'descripcion', 'cantidad', 'observaciones']
+        fields: ['item', 'cantidad', 'observaciones']
     }
 ];
 
@@ -70,36 +70,111 @@ const BombForm = () => {
     const [completedSections, setCompletedSections] = useState({});
     const [formErrors, setFormErrors] = useState({});
 
-    // Initialize form data structure
+    // =============================
+    // Catálogos de ítems por sección
+    // =============================
+    const EPP_ROPA_ITEMS = ['Camisa Forestal', 'Pantalón Forestal', 'Overol FR'];
+    const EPP_EQUIPO_ITEMS = [
+        'Esclavina', 'Linterna', 'Antiparra', 'Casco Forestal Ala Ancha',
+        'Máscara para Polvo y Partículas', 'Máscara Media Cara', 'Barbijos'
+    ];
+    const BOTAS_SIZES = ['37', '38', '39', '40', '41', '42', '43', 'otra'];
+    const GUANTES_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'otra'];
+    const HERRAMIENTAS_ITEMS = [
+        'Linternas de Cabeza', 'Pilas AA', 'Pilas AAA', 'Azadón',
+        'Pala con Mango de Fibra', 'Rastrillo Mango de Fibra',
+        'McLeod Mango de Fibra', 'Batefuego', 'Gorgui',
+        'Pulasky con Mango de Fibra', 'Quemador de Goteo',
+        'Mochila Forestal', 'Escobeta de Alambre'
+    ];
+    const LOGISTICA_REPUESTOS_ITEMS = [
+        'Gasolina', 'Diésel', 'Amortiguadores', 'Prensa Disco',
+        'Rectificación de Frenos', 'Llantas', 'Aceite de Motor',
+        'Grasa', 'Cambio de Aceite', 'Otro Tipo de Arreglo'
+    ];
+    const ALIMENTACION_ITEMS = [
+        'Alimentos y Bebidas', 'Agua', 'Rehidratantes', 'Barras Energizantes',
+        'Lata de Atún', 'Lata de Frejol', 'Lata de Viandada', 'Lata de Chorizos',
+        'Refresco en Sobres', 'Leche Polvo', 'Frutos Secos',
+        'Pastillas de Menta o Dulces', 'Alimentos No Perecederos'
+    ];
+    const CAMPO_ITEMS = ['Carpas', 'Colchonetas', 'Mochilas Personales', 'Mantas', 'Cuerdas', 'Radio Comunicadores', 'Baterías Portátiles'];
+    const LIMPIEZA_PERSONAL_ITEMS = ['Papel Higiénico', 'Cepillos de Dientes', 'Jabón', 'Pasta Dental', 'Toallas', 'Alcohol en Gel'];
+    const LIMPIEZA_GENERAL_ITEMS = ['Detergente', 'Escobas', 'Trapeadores', 'Bolsas de Basura', 'Lavandina', 'Desinfectante'];
+    const MEDICAMENTOS_ITEMS = ['Paracetamol', 'Ibuprofeno', 'Antibióticos', 'Suero Oral', 'Gasas', 'Vendas', 'Alcohol', 'Yodo', 'Curitas'];
+    const RESCATE_ANIMAL_ITEMS = ['Jaulas de Transporte', 'Collares', 'Comida para Mascotas', 'Guantes Especiales', 'Medicamentos Veterinarios'];
+
+    // =============================
+    // Estado del formulario
+    // =============================
     const [formData, setFormData] = useState({
-        // Brigada Info
+        // Datos de brigada
         nombre: '',
         cantidadactivos: 0,
         nombrecomandante: '',
         celularcomandante: '',
         encargadologistica: '',
         celularlogistica: '',
-        numerosemergencia: '',
-        
-        // Other sections will be managed separately
-        eppRopa: [],
-        eppEquipo: [],
-        herramientas: [],
-        logisticaRepuestos: [],
-        alimentacion: [],
-        logisticaCampo: [],
-        limpiezaPersonal: [],
-        limpiezaGeneral: [],
-        medicamentos: [],
-        rescateAnimal: []
+        numerosemergencia: ''
     });
 
-    // Handle input changes for simple fields
+    // Estado específico por sección (controlado)
+    const [eppRopa, setEppRopa] = useState(() => (
+        Object.fromEntries(EPP_ROPA_ITEMS.map(item => [item, { xs: 0, s: 0, m: 0, l: 0, xl: 0, observaciones: '' }]))
+    ));
+    const [botas, setBotas] = useState(() => ({ '37': 0, '38': 0, '39': 0, '40': 0, '41': 0, '42': 0, '43': 0, otra: 0, otratalla: '', observaciones: '' }));
+    const [guantes, setGuantes] = useState(() => ({ XS: 0, S: 0, M: 0, L: 0, XL: 0, XXL: 0, otra: 0, otratalla: '' }));
+    const [eppEquipo, setEppEquipo] = useState(() => (
+        Object.fromEntries(EPP_EQUIPO_ITEMS.map(item => [item, { cantidad: 0, observaciones: '' }]))
+    ));
+    const [eppEquipoCustom, setEppEquipoCustom] = useState([]);
+    const [herramientas, setHerramientas] = useState(() => (
+        Object.fromEntries(HERRAMIENTAS_ITEMS.map(item => [item, { cantidad: 0, observaciones: '' }]))
+    ));
+    const [herramientasCustom, setHerramientasCustom] = useState([]);
+    const [logisticaRepuestos, setLogisticaRepuestos] = useState(() => (
+        Object.fromEntries(LOGISTICA_REPUESTOS_ITEMS.map(item => [item, { costo: 0, observaciones: '' }]))
+    ));
+    const [logisticaRepuestosCustom, setLogisticaRepuestosCustom] = useState([]);
+    const [alimentacion, setAlimentacion] = useState(() => (
+        Object.fromEntries(ALIMENTACION_ITEMS.map(item => [item, { cantidad: 0, observaciones: '' }]))
+    ));
+    const [alimentacionCustom, setAlimentacionCustom] = useState([]);
+    const [logisticaCampo, setLogisticaCampo] = useState(() => (
+        Object.fromEntries(CAMPO_ITEMS.map(item => [item, { cantidad: 0, observaciones: '' }]))
+    ));
+    const [logisticaCampoCustom, setLogisticaCampoCustom] = useState([]);
+    const [limpiezaPersonal, setLimpiezaPersonal] = useState(() => (
+        Object.fromEntries(LIMPIEZA_PERSONAL_ITEMS.map(item => [item, { cantidad: 0, observaciones: '' }]))
+    ));
+    const [limpiezaPersonalCustom, setLimpiezaPersonalCustom] = useState([]);
+    const [limpiezaGeneral, setLimpiezaGeneral] = useState(() => (
+        Object.fromEntries(LIMPIEZA_GENERAL_ITEMS.map(item => [item, { cantidad: 0, observaciones: '' }]))
+    ));
+    const [limpiezaGeneralCustom, setLimpiezaGeneralCustom] = useState([]);
+    const [medicamentos, setMedicamentos] = useState(() => (
+        Object.fromEntries(MEDICAMENTOS_ITEMS.map(item => [item, { cantidad: 0, observaciones: '' }]))
+    ));
+    const [medicamentosCustom, setMedicamentosCustom] = useState([]);
+    const [rescateAnimal, setRescateAnimal] = useState(() => (
+        Object.fromEntries(RESCATE_ANIMAL_ITEMS.map(item => [item, { cantidad: 0, observaciones: '' }]))
+    ));
+    const [rescateAnimalCustom, setRescateAnimalCustom] = useState([]);
+    const [eppRopaCustom, setEppRopaCustom] = useState([]);
+
+    // Manejador para campos simples de brigada
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
+        let nextValue = type === 'checkbox' ? checked : value;
+
+        // Forzar solo dígitos en campos estrictamente numéricos (p.ej. cantidadactivos)
+        if (name === 'cantidadactivos') {
+            nextValue = value.replace(/\D/g, '');
+        }
+
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : value
+            [name]: nextValue
         }));
         
         // Clear error when field is edited
@@ -111,34 +186,50 @@ const BombForm = () => {
         }
     };
 
-    // Handle changes in array fields (e.g., eppRopa, herramientas, etc.)
-    const handleArrayFieldChange = (field, index, key, value) => {
-        setFormData(prev => {
-            const newArray = [...(prev[field] || [])];
-            if (!newArray[index]) {
-                newArray[index] = {};
-            }
-            newArray[index][key] = value;
-            return {
-                ...prev,
-                [field]: newArray
-            };
-        });
-    };
-
-    // Add new item to an array field
-    const addArrayItem = (field, defaultItem = {}) => {
-        setFormData(prev => ({
+    // Handlers específicos por sección para inputs controlados
+    const handleEppRopaSizeChange = (item, sizeKey, value) => {
+        setEppRopa(prev => ({
             ...prev,
-            [field]: [...(prev[field] || []), { ...defaultItem }]
+            [item]: { ...prev[item], [sizeKey]: Number(value) || 0 }
         }));
     };
-
-    // Remove item from an array field
-    const removeArrayItem = (field, index) => {
-        setFormData(prev => ({
+    const handleEppRopaObsChange = (item, text) => {
+        setEppRopa(prev => ({
             ...prev,
-            [field]: prev[field].filter((_, i) => i !== index)
+            [item]: { ...prev[item], observaciones: text }
+        }));
+    };
+    const handleBotasChange = (sizeKey, value) => {
+        setBotas(prev => ({ ...prev, [sizeKey]: Number(value) || 0 }));
+    };
+    const handleBotasObsChange = (text) => {
+        setBotas(prev => ({ ...prev, observaciones: text }));
+    };
+    const handleBotasOtraTallaText = (text) => {
+        setBotas(prev => ({ ...prev, otratalla: text }));
+    };
+    const handleGuantesChange = (sizeKey, value) => {
+        setGuantes(prev => ({ ...prev, [sizeKey]: Number(value) || 0 }));
+    };
+    const handleGuantesOtraTallaText = (text) => {
+        setGuantes(prev => ({ ...prev, otratalla: text }));
+    };
+    const handleListQuantityChange = (setter) => (item, value) => {
+        setter(prev => ({
+            ...prev,
+            [item]: { ...prev[item], cantidad: Number(value) || 0 }
+        }));
+    };
+    const handleListCostChange = (setter) => (item, value) => {
+        setter(prev => ({
+            ...prev,
+            [item]: { ...prev[item], costo: Number(value) || 0 }
+        }));
+    };
+    const handleListObsChange = (setter) => (item, text) => {
+        setter(prev => ({
+            ...prev,
+            [item]: { ...prev[item], observaciones: text }
         }));
     };
 
@@ -161,7 +252,7 @@ const BombForm = () => {
         return isValid;
     };
 
-    // Handle section navigation
+    // Navegación entre secciones con validación de la actual
     const goToSection = (sectionId) => {
         if (sectionId === 'info' || validateSection(activeSection)) {
             setActiveSection(sectionId);
@@ -169,7 +260,7 @@ const BombForm = () => {
         }
     };
 
-    // Save section data to the server
+    // Guardar una sección en el servidor según su tipo
     const saveSection = async (sectionId) => {
         const section = SECTIONS.find(s => s.id === sectionId);
         if (!section) return;
@@ -177,7 +268,7 @@ const BombForm = () => {
         try {
             setIsSubmitting(true);
             
-            // Handle brigada info section
+            // 1) Datos de brigada
             if (sectionId === 'info') {
                 const dataToSend = {};
                 section.fields.forEach(field => {
@@ -193,94 +284,335 @@ const BombForm = () => {
                 }
                 
                 return response.data;
-            } 
-            // Handle EPP section and its sub-sections
-            else if (sectionId === 'epp') {
+            } else if (sectionId === 'epp') {
+                // 2) EPP: ropa, botas, guantes y equipo
                 if (!brigadaId) {
                     throw new Error('No se ha creado la brigada aún');
                 }
 
-                // Array to store all API calls
+                // Colección de promesas
                 const apiCalls = [];
 
-                // 1. Handle EPP Ropa
-                if (formData.eppRopa && formData.eppRopa.length > 0) {
-                    formData.eppRopa.forEach(item => {
-                        apiCalls.push(
-                            axios.post(`${API_BASE_URL}/${brigadaId}/epp-ropa`, {
-                                tipo: item.tipo,
-                                talla: item.talla,
-                                cantidad: item.cantidad,
-                                observaciones: item.observaciones
-                            })
-                        );
+                // 2.1 Ropa: por cada prenda y talla > 0
+                Object.entries(eppRopa).forEach(([itemNombre, tallas]) => {
+                    ['xs', 's', 'm', 'l', 'xl'].forEach(tallaKey => {
+                        const cantidad = Number(tallas[tallaKey]) || 0;
+                        if (cantidad > 0) {
+                            apiCalls.push(
+                                axios.post(`${API_BASE_URL}/${brigadaId}/epp-ropa`, {
+                                    tipo: itemNombre,
+                                    talla: tallaKey,
+                                    cantidad,
+                                    observaciones: tallas.observaciones || ''
+                                })
+                            );
+                        }
                     });
-                }
+                });
 
-                // 2. Handle Botas
-                if (formData.botas && formData.botas.length > 0) {
-                    formData.botas.forEach(item => {
+                // 2.2 Botas: por cada talla > 0
+                Object.entries(botas).forEach(([talla, cantidad]) => {
+                    if (talla === 'observaciones' || talla === 'otratalla') return;
+                    const cant = Number(cantidad) || 0;
+                    if (cant > 0) {
                         apiCalls.push(
                             axios.post(`${API_BASE_URL}/${brigadaId}/botas`, {
-                                tipo: item.tipo,
-                                talla: item.talla,
-                                cantidad: item.cantidad,
-                                observaciones: item.observaciones
+                                tipo: 'botas',
+                                talla: talla === 'otra' ? 'otra' : String(talla),
+                                cantidad: cant,
+                                observaciones: botas.observaciones || '',
+                                otratalla: talla === 'otra' ? (botas.otratalla || '') : ''
                             })
                         );
-                    });
-                }
+                    }
+                });
 
-                // 3. Handle Guantes
-                if (formData.guantes && formData.guantes.length > 0) {
-                    formData.guantes.forEach(item => {
-                        apiCalls.push(
-                            axios.post(`${API_BASE_URL}/${brigadaId}/guantes`, {
-                                tipo: item.tipo,
-                                talla: item.talla,
-                                cantidad: item.cantidad,
-                                observaciones: item.observaciones
-                            })
-                        );
-                    });
-                }
+                // 2.3 Guantes: un solo registro agregado
+                apiCalls.push(
+                    axios.post(`${API_BASE_URL}/${brigadaId}/guantes`, {
+                        xs: Number(guantes.XS) || 0,
+                        s: Number(guantes.S) || 0,
+                        m: Number(guantes.M) || 0,
+                        l: Number(guantes.L) || 0,
+                        xl: Number(guantes.XL) || 0,
+                        xxl: Number(guantes.XXL) || 0,
+                        otratalla: guantes.otratalla || null
+                    })
+                );
 
-                // 4. Handle EPP Equipo
-                if (formData.eppEquipo && formData.eppEquipo.length > 0) {
-                    formData.eppEquipo.forEach(item => {
+                // 2.4 EPP Equipo: por cada item del catálogo con cantidad > 0
+                Object.entries(eppEquipo).forEach(([itemNombre, data]) => {
+                    const cant = Number(data.cantidad) || 0;
+                    if (cant > 0) {
                         apiCalls.push(
                             axios.post(`${API_BASE_URL}/${brigadaId}/epp-equipo`, {
-                                item: item.item,
-                                cantidad: item.cantidad,
-                                observaciones: item.observaciones
+                                item: itemNombre,
+                                cantidad: cant,
+                                observaciones: data.observaciones || ''
                             })
                         );
+                    }
+                });
+                // 2.5 EPP Ropa custom
+                eppRopaCustom.forEach(custom => {
+                    if (!custom.item) return;
+                    ['xs','s','m','l','xl'].forEach(tallaKey => {
+                        const cantidad = Number(custom[tallaKey]) || 0;
+                        if (cantidad > 0) {
+                            apiCalls.push(
+                                axios.post(`${API_BASE_URL}/${brigadaId}/epp-ropa`, {
+                                    tipo: custom.item,
+                                    talla: tallaKey,
+                                    cantidad,
+                                    observaciones: custom.observaciones || ''
+                                })
+                            );
+                        }
                     });
-                }
+                });
+                // 2.6 EPP Equipo custom
+                eppEquipoCustom.forEach(custom => {
+                    const cant = Number(custom.cantidad) || 0;
+                    if (custom.item && cant > 0) {
+                        apiCalls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/epp-equipo`, {
+                                item: custom.item,
+                                cantidad: cant,
+                                observaciones: custom.observaciones || ''
+                            })
+                        );
+                    }
+                });
 
                 // Execute all API calls in parallel
                 const results = await Promise.all(apiCalls);
                 return { success: true, results };
-            }
-            // Handle other sections (herramientas, etc.)
-            else {
-                const sectionData = formData[section.id] || [];
-                const results = [];
-                
-                for (const item of sectionData) {
-                    const url = item.id 
-                        ? `${API_BASE_URL}/${brigadaId}${section.endpoint}/${item.id}`
-                        : `${API_BASE_URL}/${brigadaId}${section.endpoint}`;
-                    
-                    const method = item.id ? 'put' : 'post';
-                    const response = await axios[method](url, {
-                        ...item,
-                        brigadaId: brigadaId
-                    });
-                    
-                    results.push(response.data);
-                }
-                
+            } else if (sectionId === 'tools') {
+                if (!brigadaId) throw new Error('No se ha creado la brigada aún');
+                const calls = [];
+                Object.entries(herramientas).forEach(([itemNombre, data]) => {
+                    const cant = Number(data.cantidad) || 0;
+                    if (cant > 0) {
+                        calls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/herramientas`, {
+                                item: itemNombre,
+                                cantidad: cant,
+                                observaciones: data.observaciones || ''
+                            })
+                        );
+                    }
+                });
+                herramientasCustom.forEach(custom => {
+                    const cant = Number(custom.cantidad) || 0;
+                    if (custom.item && cant > 0) {
+                        calls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/herramientas`, {
+                                item: custom.item,
+                                cantidad: cant,
+                                observaciones: custom.observaciones || ''
+                            })
+                        );
+                    }
+                });
+                const results = await Promise.all(calls);
+                return { success: true, results };
+            } else if (sectionId === 'logistics') {
+                if (!brigadaId) throw new Error('No se ha creado la brigada aún');
+                const calls = [];
+                Object.entries(logisticaRepuestos).forEach(([itemNombre, data]) => {
+                    const costo = Number(data.costo) || 0;
+                    if (costo > 0) {
+                        calls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/logistica-repuestos`, {
+                                item: itemNombre,
+                                costo,
+                                observaciones: data.observaciones || ''
+                            })
+                        );
+                    }
+                });
+                logisticaRepuestosCustom.forEach(custom => {
+                    const costo = Number(custom.costo) || 0;
+                    if (custom.item && costo > 0) {
+                        calls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/logistica-repuestos`, {
+                                item: custom.item,
+                                costo,
+                                observaciones: custom.observaciones || ''
+                            })
+                        );
+                    }
+                });
+                const results = await Promise.all(calls);
+                return { success: true, results };
+            } else if (sectionId === 'food') {
+                if (!brigadaId) throw new Error('No se ha creado la brigada aún');
+                const calls = [];
+                Object.entries(alimentacion).forEach(([itemNombre, data]) => {
+                    const cant = Number(data.cantidad) || 0;
+                    if (cant > 0) {
+                        calls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/alimentacion`, {
+                                item: itemNombre,
+                                cantidad: cant,
+                                observaciones: data.observaciones || ''
+                            })
+                        );
+                    }
+                });
+                alimentacionCustom.forEach(custom => {
+                    const cant = Number(custom.cantidad) || 0;
+                    if (custom.item && cant > 0) {
+                        calls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/alimentacion`, {
+                                item: custom.item,
+                                cantidad: cant,
+                                observaciones: custom.observaciones || ''
+                            })
+                        );
+                    }
+                });
+                const results = await Promise.all(calls);
+                return { success: true, results };
+            } else if (sectionId === 'camp') {
+                if (!brigadaId) throw new Error('No se ha creado la brigada aún');
+                const calls = [];
+                Object.entries(logisticaCampo).forEach(([itemNombre, data]) => {
+                    const cant = Number(data.cantidad) || 0;
+                    if (cant > 0) {
+                        calls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/logistica-campo`, {
+                                item: itemNombre,
+                                cantidad: cant,
+                                observaciones: data.observaciones || ''
+                            })
+                        );
+                    }
+                });
+                logisticaCampoCustom.forEach(custom => {
+                    const cant = Number(custom.cantidad) || 0;
+                    if (custom.item && cant > 0) {
+                        calls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/logistica-campo`, {
+                                item: custom.item,
+                                cantidad: cant,
+                                observaciones: custom.observaciones || ''
+                            })
+                        );
+                    }
+                });
+                const results = await Promise.all(calls);
+                return { success: true, results };
+            } else if (sectionId === 'hygiene') {
+                if (!brigadaId) throw new Error('No se ha creado la brigada aún');
+                const calls = [];
+                Object.entries(limpiezaPersonal).forEach(([itemNombre, data]) => {
+                    const cant = Number(data.cantidad) || 0;
+                    if (cant > 0) {
+                        calls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/limpieza-personal`, {
+                                item: itemNombre,
+                                cantidad: cant,
+                                observaciones: data.observaciones || ''
+                            })
+                        );
+                    }
+                });
+                limpiezaPersonalCustom.forEach(custom => {
+                    const cant = Number(custom.cantidad) || 0;
+                    if (custom.item && cant > 0) {
+                        calls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/limpieza-personal`, {
+                                item: custom.item,
+                                cantidad: cant,
+                                observaciones: custom.observaciones || ''
+                            })
+                        );
+                    }
+                });
+                Object.entries(limpiezaGeneral).forEach(([itemNombre, data]) => {
+                    const cant = Number(data.cantidad) || 0;
+                    if (cant > 0) {
+                        calls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/limpieza-general`, {
+                                item: itemNombre,
+                                cantidad: cant,
+                                observaciones: data.observaciones || ''
+                            })
+                        );
+                    }
+                });
+                limpiezaGeneralCustom.forEach(custom => {
+                    const cant = Number(custom.cantidad) || 0;
+                    if (custom.item && cant > 0) {
+                        calls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/limpieza-general`, {
+                                item: custom.item,
+                                cantidad: cant,
+                                observaciones: custom.observaciones || ''
+                            })
+                        );
+                    }
+                });
+                const results = await Promise.all(calls);
+                return { success: true, results };
+            } else if (sectionId === 'meds') {
+                if (!brigadaId) throw new Error('No se ha creado la brigada aún');
+                const calls = [];
+                Object.entries(medicamentos).forEach(([itemNombre, data]) => {
+                    const cant = Number(data.cantidad) || 0;
+                    if (cant > 0) {
+                        calls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/medicamentos`, {
+                                item: itemNombre,
+                                cantidad: cant,
+                                observaciones: data.observaciones || ''
+                            })
+                        );
+                    }
+                });
+                medicamentosCustom.forEach(custom => {
+                    const cant = Number(custom.cantidad) || 0;
+                    if (custom.item && cant > 0) {
+                        calls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/medicamentos`, {
+                                item: custom.item,
+                                cantidad: cant,
+                                observaciones: custom.observaciones || ''
+                            })
+                        );
+                    }
+                });
+                const results = await Promise.all(calls);
+                return { success: true, results };
+            } else if (sectionId === 'animals') {
+                if (!brigadaId) throw new Error('No se ha creado la brigada aún');
+                const calls = [];
+                Object.entries(rescateAnimal).forEach(([itemNombre, data]) => {
+                    const cant = Number(data.cantidad) || 0;
+                    if (cant > 0) {
+                        calls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/rescate-animal`, {
+                                item: itemNombre,
+                                cantidad: cant,
+                                observaciones: data.observaciones || ''
+                            })
+                        );
+                    }
+                });
+                rescateAnimalCustom.forEach(custom => {
+                    const cant = Number(custom.cantidad) || 0;
+                    if (custom.item && cant > 0) {
+                        calls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/rescate-animal`, {
+                                item: custom.item,
+                                cantidad: cant,
+                                observaciones: custom.observaciones || ''
+                            })
+                        );
+                    }
+                });
+                const results = await Promise.all(calls);
                 return { success: true, results };
             }
         } catch (error) {
@@ -423,7 +755,7 @@ const BombForm = () => {
                     {SECTIONS.map(section => (
                         <button
                             key={section.id}
-                            onClick={() => setActiveSection(section.id)}
+                            onClick={() => goToSection(section.id)}
                             className={`px-4 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${
                                 activeSection === section.id
                                     ? 'bg-red-600 text-white shadow-md'
@@ -438,6 +770,27 @@ const BombForm = () => {
 
             {/* Form Sections */}
             <div className="p-6">
+                {submitStatus.success && activeSection === SECTIONS[SECTIONS.length - 1].id && (
+                    <div className="mb-6 rounded-lg border border-green-600 bg-green-50 px-6 py-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-green-600 text-white">✓</span>
+                                <div>
+                                    <p className="font-semibold text-green-800">Formulario completado</p>
+                                    <p className="text-sm text-green-700">Tus necesidades han sido registradas correctamente. ¡Gracias!</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => window.location.reload()}
+                                className="rounded-md border border-green-700 px-3 py-1 text-sm font-medium text-green-800 hover:bg-green-700 hover:text-white"
+                                aria-label="Finalizar y reiniciar formulario"
+                            >
+                                Finalizar
+                            </button>
+                        </div>
+                    </div>
+                )}
                 {/* Información de la Brigada */}
                 {activeSection === 'info' && (
                     <div className="space-y-6">
@@ -453,6 +806,7 @@ const BombForm = () => {
                                     onChange={handleInputChange}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                     placeholder="Ingrese el nombre"
+                                    maxLength={120}
                                     required
                                 />
                             </div>
@@ -465,6 +819,9 @@ const BombForm = () => {
                                     value={formData.cantidadactivos}
                                     onChange={handleInputChange}
                                     min="0"
+                                    step="1"
+                                    inputMode="numeric"
+                                    pattern="\\d+"
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                     placeholder="Número de bomberos"
                                     required
@@ -482,6 +839,7 @@ const BombForm = () => {
                                         formErrors.nombrecomandante ? 'border-red-500' : 'border-gray-300'
                                     } rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500`}
                                     placeholder="Nombre del comandante"
+                                    maxLength={120}
                                     required
                                 />
                                 {formErrors.nombrecomandante && (
@@ -500,6 +858,7 @@ const BombForm = () => {
                                         formErrors.celularcomandante ? 'border-red-500' : 'border-gray-300'
                                     } rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500`}
                                     placeholder="Número de teléfono"
+                                    maxLength={30}
                                     required
                                 />
                                 {formErrors.celularcomandante && (
@@ -516,6 +875,7 @@ const BombForm = () => {
                                     onChange={handleInputChange}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                     placeholder="Nombre del encargado"
+                                    maxLength={120}
                                 />
                             </div>
 
@@ -530,6 +890,7 @@ const BombForm = () => {
                                         formErrors.celularlogistica ? 'border-red-500' : 'border-gray-300'
                                     } rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500`}
                                     placeholder="Número de teléfono"
+                                    maxLength={30}
                                     required
                                 />
                                 {formErrors.celularlogistica && (
@@ -546,6 +907,7 @@ const BombForm = () => {
                                     onChange={handleInputChange}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                     placeholder="Número de emergencia"
+                                    maxLength={30}
                                 />
                             </div>
                         </div>
@@ -575,39 +937,34 @@ const BombForm = () => {
                                         </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
-                                        <tr>
-                                            <td className="px-4 py-3 text-sm font-medium text-gray-900">Camisa Forestal</td>
-                                            {[0,0,0,0,0].map((_, i) => (
-                                                <td key={i} className="px-4 py-3">
-                                                    <input type="number" min="0" className="w-16 px-2 py-1 border border-gray-300 rounded text-center" />
+                                        {EPP_ROPA_ITEMS.map((itemNombre, rowIndex) => (
+                                            <tr key={itemNombre} className={rowIndex % 2 === 1 ? 'bg-gray-50' : ''}>
+                                                <td className="px-4 py-3 text-sm font-medium text-gray-900">{itemNombre}</td>
+                                                {['xs','s','m','l','xl'].map(sizeKey => (
+                                                    <td key={sizeKey} className="px-4 py-3">
+                                                    <input
+                                                            type="number"
+                                                            min="0"
+                                                        step="1"
+                                                            className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
+                                                            value={eppRopa[itemNombre][sizeKey]}
+                                                            onChange={(e) => handleEppRopaSizeChange(itemNombre, sizeKey, e.target.value)}
+                                                            aria-label={`${itemNombre} talla ${sizeKey.toUpperCase()}`}
+                                                        />
+                                                    </td>
+                                                ))}
+                                                <td className="px-4 py-3">
+                                                    <input
+                                                        type="text"
+                                                        className="w-full px-2 py-1 border border-gray-300 rounded"
+                                                        placeholder="Notas"
+                                                        value={eppRopa[itemNombre].observaciones}
+                                                        maxLength={400}
+                                                        onChange={(e) => handleEppRopaObsChange(itemNombre, e.target.value)}
+                                                    />
                                                 </td>
-                                            ))}
-                                            <td className="px-4 py-3">
-                                                <input type="text" className="w-full px-2 py-1 border border-gray-300 rounded" placeholder="Notas" />
-                                            </td>
-                                        </tr>
-                                        <tr className="bg-gray-50">
-                                            <td className="px-4 py-3 text-sm font-medium text-gray-900">Pantalón Forestal</td>
-                                            {[0,0,0,0,0].map((_, i) => (
-                                                <td key={i} className="px-4 py-3">
-                                                    <input type="number" min="0" className="w-16 px-2 py-1 border border-gray-300 rounded text-center" />
-                                                </td>
-                                            ))}
-                                            <td className="px-4 py-3">
-                                                <input type="text" className="w-full px-2 py-1 border border-gray-300 rounded" placeholder="Notas" />
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td className="px-4 py-3 text-sm font-medium text-gray-900">Overol FR</td>
-                                            {[0,0,0,0,0].map((_, i) => (
-                                                <td key={i} className="px-4 py-3">
-                                                    <input type="number" min="0" className="w-16 px-2 py-1 border border-gray-300 rounded text-center" />
-                                                </td>
-                                            ))}
-                                            <td className="px-4 py-3">
-                                                <input type="text" className="w-full px-2 py-1 border border-gray-300 rounded" placeholder="Notas" />
-                                            </td>
-                                        </tr>
+                                            </tr>
+                                        ))}
                                         </tbody>
                                     </table>
                                 </div>
@@ -617,17 +974,42 @@ const BombForm = () => {
                                 <h3 className="font-semibold text-gray-700 mb-3">Botas para Bomberos</h3>
 
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {[37, 38, 39, 40, 41, 42, 43, 'Otra Talla'].map(size => (
+                                    {['37','38','39','40','41','42','43','otra'].map(size => (
                                         <div key={size} className="flex items-center">
-                                            <label className="text-sm text-gray-700 w-24">Talla {size}</label>
+                                            <label className="text-sm text-gray-700 w-28">Talla {size === 'otra' ? 'Otra' : size}</label>
                                             <input
                                                 type="number"
                                                 min="0"
-                                                className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
+                                                step="1"
+                                                className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
                                                 placeholder="0"
+                                                value={botas[size]}
+                                                onChange={(e) => handleBotasChange(size, e.target.value)}
                                             />
                                         </div>
                                     ))}
+                                    <div className="col-span-full">
+                                        <label className="text-sm text-gray-700">Otra talla (texto)</label>
+                                        <input
+                                            type="text"
+                                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                                            placeholder="Especifica otra talla, por ejemplo 44/45..."
+                                            value={botas.otratalla}
+                                            maxLength={80}
+                                            onChange={(e) => handleBotasOtraTallaText(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="col-span-full">
+                                        <label className="text-sm text-gray-700">Observaciones</label>
+                                        <input
+                                            type="text"
+                                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                                            placeholder="Notas generales de botas"
+                                            value={botas.observaciones}
+                                            maxLength={400}
+                                            onChange={(e) => handleBotasObsChange(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
@@ -635,44 +1017,170 @@ const BombForm = () => {
                                 <h3 className="font-semibold text-gray-700 mb-3">Otros Equipos EPP</h3>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {[
-                                        'Esclavina', 'Linterna', 'Antiparra', 'Casco Forestal Ala Ancha',
-                                        'Máscara para Polvo y Partículas', 'Máscara Media Cara', 'Barbijos'
-                                    ].map(item => (
+                                    {EPP_EQUIPO_ITEMS.map(item => (
                                         <div key={item} className="flex items-center justify-between">
                                             <label className="text-sm text-gray-700">{item}</label>
                                             <div className="flex items-center space-x-2">
                                                 <input
                                                     type="number"
                                                     min="0"
+                                                    step="1"
                                                     className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
                                                     placeholder="Cantidad"
+                                                    value={eppEquipo[item].cantidad}
+                                                    onChange={(e) => handleListQuantityChange(setEppEquipo)(item, e.target.value)}
                                                 />
                                                 <input
                                                     type="text"
-                                                    className="w-32 px-2 py-1 border border-gray-300 rounded"
+                                                    className="w-40 px-2 py-1 border border-gray-300 rounded"
                                                     placeholder="Observaciones"
+                                                    value={eppEquipo[item].observaciones}
+                                                    maxLength={400}
+                                                    onChange={(e) => handleListObsChange(setEppEquipo)(item, e.target.value)}
                                                 />
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             </div>
+                            {/* EPP Equipo - Otros */}
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="font-semibold text-gray-700">Otros</h3>
+                                    <button
+                                        type="button"
+                                        className="rounded-md border border-gray-700 px-3 py-1 text-sm hover:bg-gray-800 hover:text-white"
+                                        onClick={() => setEppEquipoCustom(prev => [...prev, { item: '', cantidad: 0, observaciones: '' }])}
+                                    >
+                                        Añadir otro
+                                    </button>
+                                </div>
+                                {eppEquipoCustom.length === 0 ? (
+                                    <p className="text-sm text-gray-500">No hay ítems personalizados aún.</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {eppEquipoCustom.map((row, idx) => (
+                                            <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                                                <input
+                                                    type="text"
+                                                    className="px-2 py-1 border border-gray-300 rounded"
+                                                    placeholder="Nombre del ítem"
+                                                    value={row.item}
+                                                    onChange={(e) => setEppEquipoCustom(prev => prev.map((r,i) => i===idx ? { ...r, item: e.target.value } : r))}
+                                                />
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    className="px-2 py-1 border border-gray-300 rounded"
+                                                    placeholder="Cantidad"
+                                                    value={row.cantidad}
+                                                    onChange={(e) => setEppEquipoCustom(prev => prev.map((r,i) => i===idx ? { ...r, cantidad: Number(e.target.value)||0 } : r))}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    className="px-2 py-1 border border-gray-300 rounded col-span-1 md:col-span-2"
+                                                    placeholder="Observaciones"
+                                                    value={row.observaciones}
+                                                    onChange={(e) => setEppEquipoCustom(prev => prev.map((r,i) => i===idx ? { ...r, observaciones: e.target.value } : r))}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="justify-self-end rounded-md border border-red-700 px-3 py-1 text-sm text-red-700 hover:bg-red-700 hover:text-white"
+                                                    onClick={() => setEppEquipoCustom(prev => prev.filter((_,i)=> i!==idx))}
+                                                >
+                                                    Quitar
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            {/* EPP Ropa - Otros */}
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="font-semibold text-gray-700">Ropa - Otros</h3>
+                                    <button
+                                        type="button"
+                                        className="rounded-md border border-gray-700 px-3 py-1 text-sm hover:bg-gray-800 hover:text-white"
+                                        onClick={() => setEppRopaCustom(prev => [...prev, { item: '', xs:0,s:0,m:0,l:0,xl:0, observaciones:'' }])}
+                                    >
+                                        Añadir otro
+                                    </button>
+                                </div>
+                                {eppRopaCustom.length === 0 ? (
+                                    <p className="text-sm text-gray-500">No hay prendas personalizadas aún.</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {eppRopaCustom.map((row, idx) => (
+                                            <div key={idx} className="grid grid-cols-1 md:grid-cols-7 gap-3 items-center">
+                                                <input
+                                                    type="text"
+                                                    className="px-2 py-1 border border-gray-300 rounded"
+                                                    placeholder="Prenda"
+                                                    value={row.item}
+                                                    onChange={(e) => setEppRopaCustom(prev => prev.map((r,i)=> i===idx ? { ...r, item: e.target.value } : r))}
+                                                />
+                                                {['xs','s','m','l','xl'].map(sizeKey => (
+                                                    <input
+                                                        key={sizeKey}
+                                                        type="number"
+                                                        min="0"
+                                                        className="px-2 py-1 border border-gray-300 rounded"
+                                                        placeholder={sizeKey.toUpperCase()}
+                                                        value={row[sizeKey]}
+                                                        onChange={(e) => setEppRopaCustom(prev => prev.map((r,i)=> i===idx ? { ...r, [sizeKey]: Number(e.target.value)||0 } : r))}
+                                                    />
+                                                ))}
+                                                <input
+                                                    type="text"
+                                                    className="px-2 py-1 border border-gray-300 rounded col-span-1"
+                                                    placeholder="Observaciones"
+                                                    value={row.observaciones}
+                                                    onChange={(e) => setEppRopaCustom(prev => prev.map((r,i)=> i===idx ? { ...r, observaciones: e.target.value } : r))}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="justify-self-end rounded-md border border-red-700 px-3 py-1 text-sm text-red-700 hover:bg-red-700 hover:text-white"
+                                                    onClick={() => setEppRopaCustom(prev => prev.filter((_,i)=> i!==idx))}
+                                                >
+                                                    Quitar
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                             <div className="bg-gray-50 p-4 rounded-lg">
                                 <h3 className="font-semibold text-gray-700 mb-3">Guantes</h3>
 
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                    {['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Otra Talla'].map(talla => (
+                                    {GUANTES_SIZES.map(talla => (
                                         <div key={talla} className="flex items-center">
-                                            <label className="text-sm text-gray-700 w-24">Talla {talla}</label>
+                                            <label className="text-sm text-gray-700 w-28">Talla {talla}</label>
                                             <input
                                                 type="number"
                                                 min="0"
-                                                className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
+                                                step="1"
+                                                className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
                                                 placeholder="0"
+                                                value={guantes[talla]}
+                                                onChange={(e) => handleGuantesChange(talla, e.target.value)}
                                             />
                                         </div>
                                     ))}
+                                </div>
+                                <div className="mt-4 grid grid-cols-1 gap-3">
+                                    <div className="flex items-center">
+                                        <label className="text-sm text-gray-700 w-40">Otra talla (texto)</label>
+                                        <input
+                                            type="text"
+                                            className="flex-1 px-2 py-1 border border-gray-300 rounded"
+                                            placeholder="Describe talla extra (por ej. Talla única, 7.5, etc.)"
+                                            value={guantes.otratalla}
+                                            maxLength={80}
+                                            onChange={(e) => handleGuantesOtraTallaText(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -685,30 +1193,57 @@ const BombForm = () => {
                         <h2 className="text-xl font-bold text-gray-800 border-l-4 border-red-600 pl-3 py-1">Herramientas</h2>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {[
-                                'Linternas de Cabeza', 'Pilas AA', 'Pilas AAA', 'Azadón',
-                                'Pala con Mango de Fibra', 'Rastrillo Mango de Fibra',
-                                'McLeod Mango de Fibra', 'Batefuego', 'Gorgui',
-                                'Pulasky con Mango de Fibra', 'Quemador de Goteo',
-                                'Mochila Forestal', 'Escobeta de Alambre'
-                            ].map(tool => (
+                            {HERRAMIENTAS_ITEMS.map(tool => (
                                 <div key={tool} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                                     <label className="text-sm font-medium text-gray-700">{tool}</label>
                                     <div className="flex items-center space-x-2">
                                         <input
                                             type="number"
                                             min="0"
+                                            step="1"
                                             className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
                                             placeholder="Cantidad"
+                                            value={herramientas[tool].cantidad}
+                                            onChange={(e) => handleListQuantityChange(setHerramientas)(tool, e.target.value)}
                                         />
                                         <input
                                             type="text"
-                                            className="w-32 px-2 py-1 border border-gray-300 rounded"
+                                            className="w-40 px-2 py-1 border border-gray-300 rounded"
                                             placeholder="Observaciones"
+                                            value={herramientas[tool].observaciones}
+                                            maxLength={400}
+                                            onChange={(e) => handleListObsChange(setHerramientas)(tool, e.target.value)}
                                         />
                                     </div>
                                 </div>
                             ))}
+                            {/* Herramientas - Otros */}
+                            <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="font-semibold text-gray-700">Otros</h3>
+                                    <button
+                                        type="button"
+                                        className="rounded-md border border-gray-700 px-3 py-1 text-sm hover:bg-gray-800 hover:text-white"
+                                        onClick={() => setHerramientasCustom(prev => [...prev, { item: '', cantidad: 0, observaciones: '' }])}
+                                    >
+                                        Añadir otro
+                                    </button>
+                                </div>
+                                {herramientasCustom.length === 0 ? (
+                                    <p className="text-sm text-gray-500">No hay ítems personalizados aún.</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {herramientasCustom.map((row, idx) => (
+                                            <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                                                <input type="text" className="px-2 py-1 border border-gray-300 rounded" placeholder="Nombre" value={row.item} onChange={(e)=> setHerramientasCustom(prev => prev.map((r,i)=> i===idx ? { ...r, item: e.target.value } : r))} />
+                                                <input type="number" min="0" className="px-2 py-1 border border-gray-300 rounded" placeholder="Cantidad" value={row.cantidad} onChange={(e)=> setHerramientasCustom(prev => prev.map((r,i)=> i===idx ? { ...r, cantidad: Number(e.target.value)||0 } : r))} />
+                                                <input type="text" className="px-2 py-1 border border-gray-300 rounded col-span-1 md:col-span-2" placeholder="Observaciones" value={row.observaciones} onChange={(e)=> setHerramientasCustom(prev => prev.map((r,i)=> i===idx ? { ...r, observaciones: e.target.value } : r))} />
+                                                <button type="button" className="justify-self-end rounded-md border border-red-700 px-3 py-1 text-sm text-red-700 hover:bg-red-700 hover:text-white" onClick={()=> setHerramientasCustom(prev => prev.filter((_,i)=> i!==idx))}>Quitar</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -719,28 +1254,51 @@ const BombForm = () => {
                         <h2 className="text-xl font-bold text-gray-800 border-l-4 border-red-600 pl-3 py-1">Logística: Repuestos y Combustibles</h2>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {[
-                                'Gasolina', 'Diésel', 'Amortiguadores', 'Prensa Disco',
-                                'Rectificación de Frenos', 'Llantas', 'Aceite de Motor',
-                                'Grasa', 'Cambio de Aceite', 'Otro Tipo de Arreglo'
-                            ].map(item => (
+                            {LOGISTICA_REPUESTOS_ITEMS.map(item => (
                                 <div key={item} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                                     <label className="text-sm font-medium text-gray-700">{item}</label>
                                     <div className="flex items-center space-x-2">
                                         <input
                                             type="number"
                                             min="0"
-                                            className="w-24 px-2 py-1 border border-gray-300 rounded text-center"
+                                            step="0.01"
+                                            className="w-28 px-2 py-1 border border-gray-300 rounded text-center"
                                             placeholder="Monto"
+                                            value={logisticaRepuestos[item].costo}
+                                            onChange={(e) => handleListCostChange(setLogisticaRepuestos)(item, e.target.value)}
                                         />
                                         <input
                                             type="text"
-                                            className="w-32 px-2 py-1 border border-gray-300 rounded"
+                                            className="w-40 px-2 py-1 border border-gray-300 rounded"
                                             placeholder="Observaciones"
+                                            value={logisticaRepuestos[item].observaciones}
+                                            maxLength={400}
+                                            onChange={(e) => handleListObsChange(setLogisticaRepuestos)(item, e.target.value)}
                                         />
                                     </div>
                                 </div>
                             ))}
+                            {/* Logística - Otros */}
+                            <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="font-semibold text-gray-700">Otros</h3>
+                                    <button type="button" className="rounded-md border border-gray-700 px-3 py-1 text-sm hover:bg-gray-800 hover:text-white" onClick={() => setLogisticaRepuestosCustom(prev => [...prev, { item:'', costo:0, observaciones:'' }])}>Añadir otro</button>
+                                </div>
+                                {logisticaRepuestosCustom.length === 0 ? (
+                                    <p className="text-sm text-gray-500">No hay ítems personalizados aún.</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {logisticaRepuestosCustom.map((row, idx) => (
+                                            <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                                                <input type="text" className="px-2 py-1 border border-gray-300 rounded" placeholder="Nombre" value={row.item} onChange={(e)=> setLogisticaRepuestosCustom(prev => prev.map((r,i)=> i===idx ? { ...r, item: e.target.value } : r))} />
+                                                <input type="number" min="0" className="px-2 py-1 border border-gray-300 rounded" placeholder="Costo" value={row.costo} onChange={(e)=> setLogisticaRepuestosCustom(prev => prev.map((r,i)=> i===idx ? { ...r, costo: Number(e.target.value)||0 } : r))} />
+                                                <input type="text" className="px-2 py-1 border border-gray-300 rounded col-span-1 md:col-span-2" placeholder="Observaciones" value={row.observaciones} onChange={(e)=> setLogisticaRepuestosCustom(prev => prev.map((r,i)=> i===idx ? { ...r, observaciones: e.target.value } : r))} />
+                                                <button type="button" className="justify-self-end rounded-md border border-red-700 px-3 py-1 text-sm text-red-700 hover:bg-red-700 hover:text-white" onClick={()=> setLogisticaRepuestosCustom(prev => prev.filter((_,i)=> i!==idx))}>Quitar</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -751,29 +1309,51 @@ const BombForm = () => {
                         <h2 className="text-xl font-bold text-gray-800 border-l-4 border-red-600 pl-3 py-1">Alimentación y Bebidas</h2>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {[
-                                'Alimentos y Bebidas', 'Agua', 'Rehidratantes', 'Barras Energizantes',
-                                'Lata de Atún', 'Lata de Frejol', 'Lata de Viandada', 'Lata de Chorizos',
-                                'Refresco en Sobres', 'Leche Polvo', 'Frutos Secos',
-                                'Pastillas de Menta o Dulces', 'Alimentos No Perecederos'
-                            ].map(item => (
+                            {ALIMENTACION_ITEMS.map(item => (
                                 <div key={item} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                                     <label className="text-sm font-medium text-gray-700">{item}</label>
                                     <div className="flex items-center space-x-2">
                                         <input
                                             type="number"
                                             min="0"
+                                            step="1"
                                             className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
                                             placeholder="Cantidad"
+                                            value={alimentacion[item].cantidad}
+                                            onChange={(e) => handleListQuantityChange(setAlimentacion)(item, e.target.value)}
                                         />
                                         <input
                                             type="text"
-                                            className="w-32 px-2 py-1 border border-gray-300 rounded"
+                                            className="w-40 px-2 py-1 border border-gray-300 rounded"
                                             placeholder="Observaciones"
+                                            value={alimentacion[item].observaciones}
+                                            maxLength={400}
+                                            onChange={(e) => handleListObsChange(setAlimentacion)(item, e.target.value)}
                                         />
                                     </div>
                                 </div>
                             ))}
+                            {/* Alimentación - Otros */}
+                            <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="font-semibold text-gray-700">Otros</h3>
+                                    <button type="button" className="rounded-md border border-gray-700 px-3 py-1 text-sm hover:bg-gray-800 hover:text-white" onClick={() => setAlimentacionCustom(prev => [...prev, { item:'', cantidad:0, observaciones:'' }])}>Añadir otro</button>
+                                </div>
+                                {alimentacionCustom.length === 0 ? (
+                                    <p className="text-sm text-gray-500">No hay ítems personalizados aún.</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {alimentacionCustom.map((row, idx) => (
+                                            <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                                                <input type="text" className="px-2 py-1 border border-gray-300 rounded" placeholder="Nombre" value={row.item} onChange={(e)=> setAlimentacionCustom(prev => prev.map((r,i)=> i===idx ? { ...r, item: e.target.value } : r))} />
+                                                <input type="number" min="0" className="px-2 py-1 border border-gray-300 rounded" placeholder="Cantidad" value={row.cantidad} onChange={(e)=> setAlimentacionCustom(prev => prev.map((r,i)=> i===idx ? { ...r, cantidad: Number(e.target.value)||0 } : r))} />
+                                                <input type="text" className="px-2 py-1 border border-gray-300 rounded col-span-1 md:col-span-2" placeholder="Observaciones" value={row.observaciones} onChange={(e)=> setAlimentacionCustom(prev => prev.map((r,i)=> i===idx ? { ...r, observaciones: e.target.value } : r))} />
+                                                <button type="button" className="justify-self-end rounded-md border border-red-700 px-3 py-1 text-sm text-red-700 hover:bg-red-700 hover:text-white" onClick={()=> setAlimentacionCustom(prev => prev.filter((_,i)=> i!==idx))}>Quitar</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -781,17 +1361,51 @@ const BombForm = () => {
                     <div className="space-y-6">
                         <h2 className="text-xl font-bold text-gray-800 border-l-4 border-red-600 pl-3 py-1">Equipo de Campo</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {[
-                                'Carpas', 'Colchonetas', 'Mochilas Personales', 'Mantas', 'Cuerdas', 'Radio Comunicadores', 'Baterías Portátiles'
-                            ].map(item => (
+                            {CAMPO_ITEMS.map(item => (
                                 <div key={item} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                                     <label className="text-sm font-medium text-gray-700">{item}</label>
                                     <div className="flex items-center space-x-2">
-                                        <input type="number" min="0" className="w-20 px-2 py-1 border border-gray-300 rounded text-center" placeholder="Cantidad" />
-                                        <input type="text" className="w-32 px-2 py-1 border border-gray-300 rounded" placeholder="Observaciones" />
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="1"
+                                            className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
+                                            placeholder="Cantidad"
+                                            value={logisticaCampo[item].cantidad}
+                                            onChange={(e) => handleListQuantityChange(setLogisticaCampo)(item, e.target.value)}
+                                        />
+                                        <input
+                                            type="text"
+                                            className="w-40 px-2 py-1 border border-gray-300 rounded"
+                                            placeholder="Observaciones"
+                                            value={logisticaCampo[item].observaciones}
+                                            maxLength={400}
+                                            onChange={(e) => handleListObsChange(setLogisticaCampo)(item, e.target.value)}
+                                        />
                                     </div>
                                 </div>
                             ))}
+                            {/* Campo - Otros */}
+                            <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="font-semibold text-gray-700">Otros</h3>
+                                    <button type="button" className="rounded-md border border-gray-700 px-3 py-1 text-sm hover:bg-gray-800 hover:text-white" onClick={() => setLogisticaCampoCustom(prev => [...prev, { item:'', cantidad:0, observaciones:'' }])}>Añadir otro</button>
+                                </div>
+                                {logisticaCampoCustom.length === 0 ? (
+                                    <p className="text-sm text-gray-500">No hay ítems personalizados aún.</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {logisticaCampoCustom.map((row, idx) => (
+                                            <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                                                <input type="text" className="px-2 py-1 border border-gray-300 rounded" placeholder="Nombre" value={row.item} onChange={(e)=> setLogisticaCampoCustom(prev => prev.map((r,i)=> i===idx ? { ...r, item: e.target.value } : r))} />
+                                                <input type="number" min="0" className="px-2 py-1 border border-gray-300 rounded" placeholder="Cantidad" value={row.cantidad} onChange={(e)=> setLogisticaCampoCustom(prev => prev.map((r,i)=> i===idx ? { ...r, cantidad: Number(e.target.value)||0 } : r))} />
+                                                <input type="text" className="px-2 py-1 border border-gray-300 rounded col-span-1 md:col-span-2" placeholder="Observaciones" value={row.observaciones} onChange={(e)=> setLogisticaCampoCustom(prev => prev.map((r,i)=> i===idx ? { ...r, observaciones: e.target.value } : r))} />
+                                                <button type="button" className="justify-self-end rounded-md border border-red-700 px-3 py-1 text-sm text-red-700 hover:bg-red-700 hover:text-white" onClick={()=> setLogisticaCampoCustom(prev => prev.filter((_,i)=> i!==idx))}>Quitar</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -801,15 +1415,51 @@ const BombForm = () => {
                         <div className="space-y-6">
                             <h2 className="text-lg font-semibold text-gray-800 border-l-4 border-red-600 pl-3 py-1">Limpieza Personal</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {['Papel Higiénico', 'Cepillos de Dientes', 'Jabón', 'Pasta Dental', 'Toallas', 'Alcohol en Gel'].map(item => (
+                                {LIMPIEZA_PERSONAL_ITEMS.map(item => (
                                     <div key={item} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                                         <label className="text-sm font-medium text-gray-700">{item}</label>
                                         <div className="flex items-center space-x-2">
-                                            <input type="number" min="0" className="w-20 px-2 py-1 border border-gray-300 rounded text-center" placeholder="Cantidad" />
-                                            <input type="text" className="w-32 px-2 py-1 border border-gray-300 rounded" placeholder="Observaciones" />
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="1"
+                                                className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
+                                                placeholder="Cantidad"
+                                                value={limpiezaPersonal[item].cantidad}
+                                                onChange={(e) => handleListQuantityChange(setLimpiezaPersonal)(item, e.target.value)}
+                                            />
+                                            <input
+                                                type="text"
+                                                className="w-40 px-2 py-1 border border-gray-300 rounded"
+                                                placeholder="Observaciones"
+                                                value={limpiezaPersonal[item].observaciones}
+                                                maxLength={400}
+                                                onChange={(e) => handleListObsChange(setLimpiezaPersonal)(item, e.target.value)}
+                                            />
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                            {/* Limpieza Personal - Otros */}
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="font-semibold text-gray-700">Otros</h3>
+                                    <button type="button" className="rounded-md border border-gray-700 px-3 py-1 text-sm hover:bg-gray-800 hover:text-white" onClick={() => setLimpiezaPersonalCustom(prev => [...prev, { item:'', cantidad:0, observaciones:'' }])}>Añadir otro</button>
+                                </div>
+                                {limpiezaPersonalCustom.length === 0 ? (
+                                    <p className="text-sm text-gray-500">No hay ítems personalizados aún.</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {limpiezaPersonalCustom.map((row, idx) => (
+                                            <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                                                <input type="text" className="px-2 py-1 border border-gray-300 rounded" placeholder="Nombre" value={row.item} onChange={(e)=> setLimpiezaPersonalCustom(prev => prev.map((r,i)=> i===idx ? { ...r, item: e.target.value } : r))} />
+                                                <input type="number" min="0" className="px-2 py-1 border border-gray-300 rounded" placeholder="Cantidad" value={row.cantidad} onChange={(e)=> setLimpiezaPersonalCustom(prev => prev.map((r,i)=> i===idx ? { ...r, cantidad: Number(e.target.value)||0 } : r))} />
+                                                <input type="text" className="px-2 py-1 border border-gray-300 rounded col-span-1 md:col-span-2" placeholder="Observaciones" value={row.observaciones} onChange={(e)=> setLimpiezaPersonalCustom(prev => prev.map((r,i)=> i===idx ? { ...r, observaciones: e.target.value } : r))} />
+                                                <button type="button" className="justify-self-end rounded-md border border-red-700 px-3 py-1 text-sm text-red-700 hover:bg-red-700 hover:text-white" onClick={()=> setLimpiezaPersonalCustom(prev => prev.filter((_,i)=> i!==idx))}>Quitar</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -817,15 +1467,51 @@ const BombForm = () => {
                         <div className="space-y-6">
                             <h2 className="text-lg font-semibold text-gray-800 border-l-4 border-red-600 pl-3 py-1">Limpieza General</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {['Detergente', 'Escobas', 'Trapeadores', 'Bolsas de Basura', 'Lavandina', 'Desinfectante'].map(item => (
+                                {LIMPIEZA_GENERAL_ITEMS.map(item => (
                                     <div key={item} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                                         <label className="text-sm font-medium text-gray-700">{item}</label>
                                         <div className="flex items-center space-x-2">
-                                            <input type="number" min="0" className="w-20 px-2 py-1 border border-gray-300 rounded text-center" placeholder="Cantidad" />
-                                            <input type="text" className="w-32 px-2 py-1 border border-gray-300 rounded" placeholder="Observaciones" />
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="1"
+                                                className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
+                                                placeholder="Cantidad"
+                                                value={limpiezaGeneral[item].cantidad}
+                                                onChange={(e) => handleListQuantityChange(setLimpiezaGeneral)(item, e.target.value)}
+                                            />
+                                            <input
+                                                type="text"
+                                                className="w-40 px-2 py-1 border border-gray-300 rounded"
+                                                placeholder="Observaciones"
+                                                value={limpiezaGeneral[item].observaciones}
+                                                maxLength={400}
+                                                onChange={(e) => handleListObsChange(setLimpiezaGeneral)(item, e.target.value)}
+                                            />
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                            {/* Limpieza General - Otros */}
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="font-semibold text-gray-700">Otros</h3>
+                                    <button type="button" className="rounded-md border border-gray-700 px-3 py-1 text-sm hover:bg-gray-800 hover:text-white" onClick={() => setLimpiezaGeneralCustom(prev => [...prev, { item:'', cantidad:0, observaciones:'' }])}>Añadir otro</button>
+                                </div>
+                                {limpiezaGeneralCustom.length === 0 ? (
+                                    <p className="text-sm text-gray-500">No hay ítems personalizados aún.</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {limpiezaGeneralCustom.map((row, idx) => (
+                                            <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                                                <input type="text" className="px-2 py-1 border border-gray-300 rounded" placeholder="Nombre" value={row.item} onChange={(e)=> setLimpiezaGeneralCustom(prev => prev.map((r,i)=> i===idx ? { ...r, item: e.target.value } : r))} />
+                                                <input type="number" min="0" className="px-2 py-1 border border-gray-300 rounded" placeholder="Cantidad" value={row.cantidad} onChange={(e)=> setLimpiezaGeneralCustom(prev => prev.map((r,i)=> i===idx ? { ...r, cantidad: Number(e.target.value)||0 } : r))} />
+                                                <input type="text" className="px-2 py-1 border border-gray-300 rounded col-span-1 md:col-span-2" placeholder="Observaciones" value={row.observaciones} onChange={(e)=> setLimpiezaGeneralCustom(prev => prev.map((r,i)=> i===idx ? { ...r, observaciones: e.target.value } : r))} />
+                                                <button type="button" className="justify-self-end rounded-md border border-red-700 px-3 py-1 text-sm text-red-700 hover:bg-red-700 hover:text-white" onClick={()=> setLimpiezaGeneralCustom(prev => prev.filter((_,i)=> i!==idx))}>Quitar</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -834,17 +1520,51 @@ const BombForm = () => {
                     <div className="space-y-6">
                         <h2 className="text-xl font-bold text-gray-800 border-l-4 border-red-600 pl-3 py-1">Medicamentos</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {[
-                                'Paracetamol', 'Ibuprofeno', 'Antibióticos', 'Suero Oral', 'Gasas', 'Vendas', 'Alcohol', 'Yodo', 'Curitas'
-                            ].map(item => (
+                            {MEDICAMENTOS_ITEMS.map(item => (
                                 <div key={item} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                                     <label className="text-sm font-medium text-gray-700">{item}</label>
                                     <div className="flex items-center space-x-2">
-                                        <input type="number" min="0" className="w-20 px-2 py-1 border border-gray-300 rounded text-center" placeholder="Cantidad" />
-                                        <input type="text" className="w-32 px-2 py-1 border border-gray-300 rounded" placeholder="Observaciones" />
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="1"
+                                            className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
+                                            placeholder="Cantidad"
+                                            value={medicamentos[item].cantidad}
+                                            onChange={(e) => handleListQuantityChange(setMedicamentos)(item, e.target.value)}
+                                        />
+                                        <input
+                                            type="text"
+                                            className="w-40 px-2 py-1 border border-gray-300 rounded"
+                                            placeholder="Observaciones"
+                                            value={medicamentos[item].observaciones}
+                                            maxLength={400}
+                                            onChange={(e) => handleListObsChange(setMedicamentos)(item, e.target.value)}
+                                        />
                                     </div>
                                 </div>
                             ))}
+                            {/* Medicamentos - Otros */}
+                            <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="font-semibold text-gray-700">Otros</h3>
+                                    <button type="button" className="rounded-md border border-gray-700 px-3 py-1 text-sm hover:bg-gray-800 hover:text-white" onClick={() => setMedicamentosCustom(prev => [...prev, { item:'', cantidad:0, observaciones:'' }])}>Añadir otro</button>
+                                </div>
+                                {medicamentosCustom.length === 0 ? (
+                                    <p className="text-sm text-gray-500">No hay ítems personalizados aún.</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {medicamentosCustom.map((row, idx) => (
+                                            <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                                                <input type="text" className="px-2 py-1 border border-gray-300 rounded" placeholder="Nombre" value={row.item} onChange={(e)=> setMedicamentosCustom(prev => prev.map((r,i)=> i===idx ? { ...r, item: e.target.value } : r))} />
+                                                <input type="number" min="0" className="px-2 py-1 border border-gray-300 rounded" placeholder="Cantidad" value={row.cantidad} onChange={(e)=> setMedicamentosCustom(prev => prev.map((r,i)=> i===idx ? { ...r, cantidad: Number(e.target.value)||0 } : r))} />
+                                                <input type="text" className="px-2 py-1 border border-gray-300 rounded col-span-1 md:col-span-2" placeholder="Observaciones" value={row.observaciones} onChange={(e)=> setMedicamentosCustom(prev => prev.map((r,i)=> i===idx ? { ...r, observaciones: e.target.value } : r))} />
+                                                <button type="button" className="justify-self-end rounded-md border border-red-700 px-3 py-1 text-sm text-red-700 hover:bg-red-700 hover:text-white" onClick={()=> setMedicamentosCustom(prev => prev.filter((_,i)=> i!==idx))}>Quitar</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -852,17 +1572,51 @@ const BombForm = () => {
                     <div className="space-y-6">
                         <h2 className="text-xl font-bold text-gray-800 border-l-4 border-red-600 pl-3 py-1">Rescate Animal</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {[
-                                'Jaulas de Transporte', 'Collares', 'Comida para Mascotas', 'Guantes Especiales', 'Medicamentos Veterinarios'
-                            ].map(item => (
+                            {RESCATE_ANIMAL_ITEMS.map(item => (
                                 <div key={item} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                                     <label className="text-sm font-medium text-gray-700">{item}</label>
                                     <div className="flex items-center space-x-2">
-                                        <input type="number" min="0" className="w-20 px-2 py-1 border border-gray-300 rounded text-center" placeholder="Cantidad" />
-                                        <input type="text" className="w-32 px-2 py-1 border border-gray-300 rounded" placeholder="Observaciones" />
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="1"
+                                            className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
+                                            placeholder="Cantidad"
+                                            value={rescateAnimal[item].cantidad}
+                                            onChange={(e) => handleListQuantityChange(setRescateAnimal)(item, e.target.value)}
+                                        />
+                                        <input
+                                            type="text"
+                                            className="w-40 px-2 py-1 border border-gray-300 rounded"
+                                            placeholder="Observaciones"
+                                            value={rescateAnimal[item].observaciones}
+                                            maxLength={400}
+                                            onChange={(e) => handleListObsChange(setRescateAnimal)(item, e.target.value)}
+                                        />
                                     </div>
                                 </div>
                             ))}
+                            {/* Rescate Animal - Otros */}
+                            <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="font-semibold text-gray-700">Otros</h3>
+                                    <button type="button" className="rounded-md border border-gray-700 px-3 py-1 text-sm hover:bg-gray-800 hover:text-white" onClick={() => setRescateAnimalCustom(prev => [...prev, { item:'', cantidad:0, observaciones:'' }])}>Añadir otro</button>
+                                </div>
+                                {rescateAnimalCustom.length === 0 ? (
+                                    <p className="text-sm text-gray-500">No hay ítems personalizados aún.</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {rescateAnimalCustom.map((row, idx) => (
+                                            <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                                                <input type="text" className="px-2 py-1 border border-gray-300 rounded" placeholder="Nombre" value={row.item} onChange={(e)=> setRescateAnimalCustom(prev => prev.map((r,i)=> i===idx ? { ...r, item: e.target.value } : r))} />
+                                                <input type="number" min="0" className="px-2 py-1 border border-gray-300 rounded" placeholder="Cantidad" value={row.cantidad} onChange={(e)=> setRescateAnimalCustom(prev => prev.map((r,i)=> i===idx ? { ...r, cantidad: Number(e.target.value)||0 } : r))} />
+                                                <input type="text" className="px-2 py-1 border border-gray-300 rounded col-span-1 md:col-span-2" placeholder="Observaciones" value={row.observaciones} onChange={(e)=> setRescateAnimalCustom(prev => prev.map((r,i)=> i===idx ? { ...r, observaciones: e.target.value } : r))} />
+                                                <button type="button" className="justify-self-end rounded-md border border-red-700 px-3 py-1 text-sm text-red-700 hover:bg-red-700 hover:text-white" onClick={()=> setRescateAnimalCustom(prev => prev.filter((_,i)=> i!==idx))}>Quitar</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}

@@ -20,6 +20,11 @@ router.post('/brigada', async (req, res) => {
     
     try {
         const { nombre, cantidadactivos, nombrecomandante, celularcomandante, encargadologistica, celularlogistica, numerosemergencia } = req.body;
+
+        // Solo validar numéricos
+        if (cantidadactivos == null || isNaN(Number(cantidadactivos)) || Number(cantidadactivos) < 0) {
+            return res.status(400).json({ success: false, message: 'cantidadactivos debe ser un número entero >= 0' });
+        }
         
         console.log('Conectando a la base de datos...');
         const pool = await poolPromise;
@@ -146,6 +151,9 @@ router.post('/brigada/:id/epp-ropa', async (req, res) => {
                 required: ['tipo', 'talla', 'cantidad']
             });
         }
+        if (isNaN(Number(cantidad)) || Number(cantidad) < 0) {
+            return res.status(400).json({ success: false, message: 'cantidad debe ser un número entero >= 0' });
+        }
         
         const pool = await poolPromise;
         
@@ -179,8 +187,7 @@ router.post('/brigada/:id/epp-ropa', async (req, res) => {
                 .query(`
                     UPDATE epp_ropa 
                     SET xs = @xs, s = @s, m = @m, l = @l, xl = @xl, 
-                        observaciones = @observaciones,
-                        updatedAt = GETDATE()
+                        observaciones = @observaciones
                     WHERE brigadaid = @brigadaid AND item = @item
                 `);
         } else {
@@ -259,7 +266,7 @@ router.post('/brigada/:id/botas', async (req, res) => {
     console.log('Datos recibidos:', req.body);
     
     try {
-        const { tipo, talla, cantidad, observaciones } = req.body;
+        const { tipo, talla, cantidad, observaciones, otratalla } = req.body;
         const brigadaId = req.params.id;
         
         if (!tipo || !talla || cantidad === undefined) {
@@ -271,6 +278,9 @@ router.post('/brigada/:id/botas', async (req, res) => {
         }
         
         const pool = await poolPromise;
+        if (isNaN(Number(cantidad)) || Number(cantidad) < 0) {
+            return res.status(400).json({ success: false, message: 'cantidad debe ser un número entero >= 0' });
+        }
         
         // Convertir el formato del frontend al formato de la base de datos
         const updateData = {
@@ -281,7 +291,7 @@ router.post('/brigada/:id/botas', async (req, res) => {
             talla41: talla === '41' ? parseInt(cantidad) || 0 : 0,
             talla42: talla === '42' ? parseInt(cantidad) || 0 : 0,
             talla43: talla === '43' ? parseInt(cantidad) || 0 : 0,
-            otratalla: talla === 'otra' ? (observaciones || '') : '',
+            otratalla: talla === 'otra' ? (otratalla || '') : '',
             observaciones: observaciones || null
         };
         
@@ -313,8 +323,7 @@ router.post('/brigada/:id/botas', async (req, res) => {
                         talla42 = talla42 + @talla42,
                         talla43 = talla43 + @talla43,
                         otratalla = CASE WHEN @otratalla != '' THEN @otratalla ELSE otratalla END,
-                        observaciones = @observaciones,
-                        updatedAt = GETDATE()
+                        observaciones = @observaciones
                     WHERE brigadaid = @brigadaid
                 `);
         } else {
@@ -335,8 +344,6 @@ router.post('/brigada/:id/botas', async (req, res) => {
                     (brigadaid, talla37, talla38, talla39, talla40, talla41, talla42, talla43, otratalla, observaciones)
                     VALUES 
                     (@brigadaid, @talla37, @talla38, @talla39, @talla40, @talla41, @talla42, @talla43, @otratalla, @observaciones)
-                    INSERT INTO botas (brigadaid, talla37, talla38, talla39, talla40, talla41, talla42, talla43, otratalla)
-                    VALUES (@brigadaid, @talla37, @talla38, @talla39, @talla40, @talla41, @talla42, @talla43, @otratalla)
                 `);
         }
             
@@ -368,6 +375,12 @@ router.get('/brigada/:id/botas', async (req, res) => {
 router.post('/brigada/:id/guantes', async (req, res) => {
     try {
         const { xs, s, m, l, xl, xxl, otratalla } = req.body;
+        const nums = { xs, s, m, l, xl, xxl };
+        for (const [k, v] of Object.entries(nums)) {
+            if (v == null || isNaN(Number(v)) || Number(v) < 0) {
+                return res.status(400).json({ success: false, message: `${k} debe ser un número entero >= 0` });
+            }
+        }
         const pool = await poolPromise;
         
         // Verificar si ya existe un registro para esta brigada
@@ -436,6 +449,10 @@ router.get('/brigada/:id/guantes', async (req, res) => {
 router.post('/brigada/:id/epp-equipo', async (req, res) => {
     try {
         const { item, cantidad, observaciones } = req.body;
+        if (!item) return res.status(400).json({ success: false, message: 'item es requerido' });
+        if (cantidad == null || isNaN(Number(cantidad)) || Number(cantidad) < 0) {
+            return res.status(400).json({ success: false, message: 'cantidad debe ser un número entero >= 0' });
+        }
         const pool = await poolPromise;
         
         await pool.request()
@@ -490,6 +507,10 @@ router.delete('/brigada/:id/epp-equipo/:itemId', async (req, res) => {
 router.post('/brigada/:id/herramientas', async (req, res) => {
     try {
         const { item, cantidad, observaciones } = req.body;
+        if (!item) return res.status(400).json({ success: false, message: 'item es requerido' });
+        if (cantidad == null || isNaN(Number(cantidad)) || Number(cantidad) < 0) {
+            return res.status(400).json({ success: false, message: 'cantidad debe ser un número entero >= 0' });
+        }
         const pool = await poolPromise;
         
         await pool.request()
@@ -544,6 +565,10 @@ router.delete('/brigada/:id/herramientas/:itemId', async (req, res) => {
 router.post('/brigada/:id/logistica-repuestos', async (req, res) => {
     try {
         const { item, costo, observaciones } = req.body;
+        if (!item) return res.status(400).json({ success: false, message: 'item es requerido' });
+        if (costo == null || isNaN(Number(costo)) || Number(costo) < 0) {
+            return res.status(400).json({ success: false, message: 'costo debe ser un número >= 0' });
+        }
         const pool = await poolPromise;
         
         await pool.request()
@@ -598,6 +623,10 @@ router.delete('/brigada/:id/logistica-repuestos/:itemId', async (req, res) => {
 router.post('/brigada/:id/alimentacion', async (req, res) => {
     try {
         const { item, cantidad, observaciones } = req.body;
+        if (!item) return res.status(400).json({ success: false, message: 'item es requerido' });
+        if (cantidad == null || isNaN(Number(cantidad)) || Number(cantidad) < 0) {
+            return res.status(400).json({ success: false, message: 'cantidad debe ser un número entero >= 0' });
+        }
         const pool = await poolPromise;
         
         await pool.request()
@@ -652,6 +681,10 @@ router.delete('/brigada/:id/alimentacion/:itemId', async (req, res) => {
 router.post('/brigada/:id/logistica-campo', async (req, res) => {
     try {
         const { item, cantidad, observaciones } = req.body;
+        if (!item) return res.status(400).json({ success: false, message: 'item es requerido' });
+        if (cantidad == null || isNaN(Number(cantidad)) || Number(cantidad) < 0) {
+            return res.status(400).json({ success: false, message: 'cantidad debe ser un número entero >= 0' });
+        }
         const pool = await poolPromise;
         
         await pool.request()
@@ -706,6 +739,10 @@ router.delete('/brigada/:id/logistica-campo/:itemId', async (req, res) => {
 router.post('/brigada/:id/limpieza-personal', async (req, res) => {
     try {
         const { item, cantidad, observaciones } = req.body;
+        if (!item) return res.status(400).json({ success: false, message: 'item es requerido' });
+        if (cantidad == null || isNaN(Number(cantidad)) || Number(cantidad) < 0) {
+            return res.status(400).json({ success: false, message: 'cantidad debe ser un número entero >= 0' });
+        }
         const pool = await poolPromise;
         
         await pool.request()
@@ -760,6 +797,10 @@ router.delete('/brigada/:id/limpieza-personal/:itemId', async (req, res) => {
 router.post('/brigada/:id/limpieza-general', async (req, res) => {
     try {
         const { item, cantidad, observaciones } = req.body;
+        if (!item) return res.status(400).json({ success: false, message: 'item es requerido' });
+        if (cantidad == null || isNaN(Number(cantidad)) || Number(cantidad) < 0) {
+            return res.status(400).json({ success: false, message: 'cantidad debe ser un número entero >= 0' });
+        }
         const pool = await poolPromise;
         
         await pool.request()
@@ -814,6 +855,10 @@ router.delete('/brigada/:id/limpieza-general/:itemId', async (req, res) => {
 router.post('/brigada/:id/medicamentos', async (req, res) => {
     try {
         const { item, cantidad, observaciones } = req.body;
+        if (!item) return res.status(400).json({ success: false, message: 'item es requerido' });
+        if (cantidad == null || isNaN(Number(cantidad)) || Number(cantidad) < 0) {
+            return res.status(400).json({ success: false, message: 'cantidad debe ser un número entero >= 0' });
+        }
         const pool = await poolPromise;
         
         await pool.request()
@@ -868,6 +913,10 @@ router.delete('/brigada/:id/medicamentos/:itemId', async (req, res) => {
 router.post('/brigada/:id/rescate-animal', async (req, res) => {
     try {
         const { item, cantidad, observaciones } = req.body;
+        if (!item) return res.status(400).json({ success: false, message: 'item es requerido' });
+        if (cantidad == null || isNaN(Number(cantidad)) || Number(cantidad) < 0) {
+            return res.status(400).json({ success: false, message: 'cantidad debe ser un número entero >= 0' });
+        }
         const pool = await poolPromise;
         
         await pool.request()
