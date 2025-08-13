@@ -189,7 +189,7 @@ const BombForm = () => {
     // Handlers específicos por sección para inputs controlados
     const handleEppRopaSizeChange = (item, sizeKey, value) => {
         setEppRopa(prev => ({
-            ...prev,
+                ...prev,
             [item]: { ...prev[item], [sizeKey]: Number(value) || 0 }
         }));
     };
@@ -298,8 +298,8 @@ const BombForm = () => {
                     ['xs', 's', 'm', 'l', 'xl'].forEach(tallaKey => {
                         const cantidad = Number(tallas[tallaKey]) || 0;
                         if (cantidad > 0) {
-                            apiCalls.push(
-                                axios.post(`${API_BASE_URL}/${brigadaId}/epp-ropa`, {
+                        apiCalls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/epp-ropa`, {
                                     tipo: itemNombre,
                                     talla: tallaKey,
                                     cantidad,
@@ -328,8 +328,8 @@ const BombForm = () => {
                 });
 
                 // 2.3 Guantes: un solo registro agregado
-                apiCalls.push(
-                    axios.post(`${API_BASE_URL}/${brigadaId}/guantes`, {
+                        apiCalls.push(
+                            axios.post(`${API_BASE_URL}/${brigadaId}/guantes`, {
                         xs: Number(guantes.XS) || 0,
                         s: Number(guantes.S) || 0,
                         m: Number(guantes.M) || 0,
@@ -691,10 +691,10 @@ const BombForm = () => {
                         }
                     }}
                     disabled={currentIndex === 0}
-                    className={`px-6 py-2 rounded-lg font-medium ${
+                    className={`px-4 py-2 border font-medium transition-colors rounded-md ${
                         currentIndex === 0 
-                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-                            : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                            ? 'border-neutral-300 text-neutral-400 cursor-not-allowed' 
+                            : 'border-red-300 text-red-700 hover:bg-gradient-to-r hover:from-red-600 hover:to-orange-500 hover:text-white'
                     }`}
                 >
                     Anterior
@@ -712,10 +712,10 @@ const BombForm = () => {
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className={`px-6 py-2 rounded-lg font-medium text-white ${
+                        className={`px-6 py-2 border font-medium transition-colors rounded-md ${
                             isSubmitting 
-                                ? 'bg-gray-400 cursor-not-allowed' 
-                                : 'bg-red-600 hover:bg-red-700'
+                                ? 'border-neutral-300 text-neutral-400 cursor-not-allowed' 
+                                : 'border-red-300 text-red-700 hover:bg-gradient-to-r hover:from-orange-500 hover:to-red-600 hover:text-white'
                         }`}
                     >
                         {currentIndex === SECTIONS.length - 1 
@@ -728,9 +728,9 @@ const BombForm = () => {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-xl overflow-hidden">
+        <form onSubmit={handleSubmit} className="bg-white text-neutral-900 border border-red-100 rounded-xl">
             {/* Header */}
-            <div className="bg-gradient-to-r from-red-700 via-red-600 to-red-700 py-6 px-8">
+            <div className="bg-gradient-to-r from-red-600 via-orange-500 to-red-600 py-6 px-8 text-white rounded-t-xl">
                 <div className="flex flex-col md:flex-row items-center justify-between">
                     <div className="flex items-center mb-4 md:mb-0">
                         <div className="bg-yellow-400 p-3 rounded-full mr-4">
@@ -750,16 +750,16 @@ const BombForm = () => {
             </div>
 
             {/* Navigation */}
-            <div className="bg-gray-100 px-4 py-3 border-b">
-                <div className="flex overflow-x-auto pb-2 space-x-2">
+            <div className="px-4 py-3 border-b border-red-100 bg-white">
+                <div className="flex overflow-x-auto pb-2 gap-2">
                     {SECTIONS.map(section => (
                         <button
                             key={section.id}
                             onClick={() => goToSection(section.id)}
-                            className={`px-4 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${
+                            className={`px-3 py-2 text-xs uppercase tracking-wide border rounded-md ${
                                 activeSection === section.id
-                                    ? 'bg-red-600 text-white shadow-md'
-                                    : 'bg-white text-gray-700 hover:bg-gray-200'
+                                    ? 'bg-gradient-to-r from-red-600 to-orange-500 text-white border-transparent'
+                                    : 'bg-white text-neutral-900 border-neutral-300 hover:border-red-400'
                             }`}
                         >
                             {section.name}
@@ -771,19 +771,13 @@ const BombForm = () => {
             {/* Form Sections */}
             <div className="p-6">
                 {submitStatus.success && activeSection === SECTIONS[SECTIONS.length - 1].id && (
-                    <div className="mb-6 rounded-lg border border-green-600 bg-green-50 px-6 py-4">
+                    <div className="mb-6 border border-red-200 px-6 py-4 bg-gradient-to-r from-red-600 via-orange-500 to-red-600 text-white rounded-lg">
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-green-600 text-white">✓</span>
-                                <div>
-                                    <p className="font-semibold text-green-800">Formulario completado</p>
-                                    <p className="text-sm text-green-700">Tus necesidades han sido registradas correctamente. ¡Gracias!</p>
-                                </div>
-                            </div>
+                            <p className="text-base">Formulario completado. Tus necesidades han sido registradas.</p>
                             <button
                                 type="button"
                                 onClick={() => window.location.reload()}
-                                className="rounded-md border border-green-700 px-3 py-1 text-sm font-medium text-green-800 hover:bg-green-700 hover:text-white"
+                                className="border border-white px-3 py-1 text-sm font-medium bg-white/20 hover:bg-white hover:text-red-700"
                                 aria-label="Finalizar y reiniciar formulario"
                             >
                                 Finalizar
@@ -794,11 +788,11 @@ const BombForm = () => {
                 {/* Información de la Brigada */}
                 {activeSection === 'info' && (
                     <div className="space-y-6">
-                        <h2 className="text-xl font-bold text-gray-800 border-l-4 border-red-600 pl-3 py-1">Datos de la Brigada</h2>
+                        <h2 className="text-xl font-semibold tracking-tight text-red-800">Datos de la Brigada</h2>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la Brigada</label>
+                                <label className="block text-xs uppercase tracking-wide text-red-800/80 mb-1">Nombre de la Brigada</label>
                                 <input
                                     type="text"
                                     name="nombre"
@@ -812,7 +806,7 @@ const BombForm = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad de Bomberos Activos</label>
+                                <label className="block text-xs uppercase tracking-wide text-red-800/80 mb-1">Cantidad de Bomberos Activos</label>
                                 <input
                                     type="number"
                                     name="cantidadactivos"
@@ -829,7 +823,7 @@ const BombForm = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Comandante</label>
+                                <label className="block text-xs uppercase tracking-wide text-red-800/80 mb-1">Comandante</label>
                                 <input
                                     type="text"
                                     name="nombrecomandante"
@@ -848,7 +842,7 @@ const BombForm = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Contacto Celular Comandante</label>
+                                <label className="block text-xs uppercase tracking-wide text-red-800/80 mb-1">Contacto Celular Comandante</label>
                                 <input
                                     type="tel"
                                     name="celularcomandante"
@@ -867,7 +861,7 @@ const BombForm = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Encargado de Logística</label>
+                                <label className="block text-xs uppercase tracking-wide text-red-800/80 mb-1">Encargado de Logística</label>
                                 <input
                                     type="text"
                                     name="encargadologistica"
@@ -880,7 +874,7 @@ const BombForm = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Contacto Celular Logística</label>
+                                <label className="block text-xs uppercase tracking-wide text-red-800/80 mb-1">Contacto Celular Logística</label>
                                 <input
                                     type="tel"
                                     name="celularlogistica"
@@ -899,7 +893,7 @@ const BombForm = () => {
                             </div>
 
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Número de Emergencia Público (si lo tiene)</label>
+                                <label className="block text-xs uppercase tracking-wide text-red-800/80 mb-1">Número de Emergencia Público (si lo tiene)</label>
                                 <input
                                     type="tel"
                                     name="numerosemergencia"
@@ -951,9 +945,9 @@ const BombForm = () => {
                                                             onChange={(e) => handleEppRopaSizeChange(itemNombre, sizeKey, e.target.value)}
                                                             aria-label={`${itemNombre} talla ${sizeKey.toUpperCase()}`}
                                                         />
-                                                    </td>
-                                                ))}
-                                                <td className="px-4 py-3">
+                                                </td>
+                                            ))}
+                                            <td className="px-4 py-3">
                                                     <input
                                                         type="text"
                                                         className="w-full px-2 py-1 border border-gray-300 rounded"
@@ -962,8 +956,8 @@ const BombForm = () => {
                                                         maxLength={400}
                                                         onChange={(e) => handleEppRopaObsChange(itemNombre, e.target.value)}
                                                     />
-                                                </td>
-                                            </tr>
+                                            </td>
+                                        </tr>
                                         ))}
                                         </tbody>
                                     </table>
