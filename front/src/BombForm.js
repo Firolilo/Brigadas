@@ -6,7 +6,7 @@ import Select from './components/common/Select';
 import Label from './components/common/Label';
 import NumberStepper from './components/common/NumberStepper';
 
-const API_BASE_URL = 'http://localhost:3002/api/brigada';
+const API_BASE_URL = 'https://brigadas.onrender.com/api/brigadas';
 
 // Configuración de secciones con endpoints y reglas básicas
 const SECTIONS = [
