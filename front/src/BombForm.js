@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 import Button from './components/common/Button';
 import Input from './components/common/Input';
 import Select from './components/common/Select';
@@ -74,6 +75,10 @@ const BombForm = () => {
     const [brigadaId, setBrigadaId] = useState(null);
     const [completedSections, setCompletedSections] = useState({});
     const [formErrors, setFormErrors] = useState({});
+    // Descarga Excel al finalizar
+    const [showDownloadModal, setShowDownloadModal] = useState(false);
+    const [downloadingExcel, setDownloadingExcel] = useState(false);
+
 
     // =============================
     // Catálogos de ítems por sección
@@ -287,6 +292,108 @@ const BombForm = () => {
     });
 
     // Abre el modal de resumen y carga todos los datos en paralelo
+
+    // =============================
+    // Exportar a Excel (.xlsx)
+    // =============================
+    const fetchAllForExcel = async (brigadaIdValue) => {
+        const requests = [
+            axios.get(`${API_BASE_URL}/${brigadaIdValue}`),
+            axios.get(`${API_BASE_URL}/${brigadaIdValue}/epp-ropa`),
+            axios.get(`${API_BASE_URL}/${brigadaIdValue}/botas`),
+            axios.get(`${API_BASE_URL}/${brigadaIdValue}/guantes`),
+            axios.get(`${API_BASE_URL}/${brigadaIdValue}/epp-equipo`),
+            axios.get(`${API_BASE_URL}/${brigadaIdValue}/herramientas`),
+            axios.get(`${API_BASE_URL}/${brigadaIdValue}/logistica-repuestos`),
+            axios.get(`${API_BASE_URL}/${brigadaIdValue}/alimentacion`),
+            axios.get(`${API_BASE_URL}/${brigadaIdValue}/logistica-campo`),
+            axios.get(`${API_BASE_URL}/${brigadaIdValue}/limpieza-personal`),
+            axios.get(`${API_BASE_URL}/${brigadaIdValue}/limpieza-general`),
+            axios.get(`${API_BASE_URL}/${brigadaIdValue}/medicamentos`),
+            axios.get(`${API_BASE_URL}/${brigadaIdValue}/rescate-animal`)
+        ];
+        const [
+            brigadaRes, ropaRes, botasRes, guantesRes, equipoRes, herramientasRes,
+            repuestosRes, alimentacionRes, campoRes, limpiezaPersRes, limpiezaGenRes,
+            medicamentosRes, rescateRes
+        ] = await Promise.all(requests);
+
+        return {
+            brigada: brigadaRes?.data || {},
+            data: {
+                eppRopa: ropaRes?.data || [],
+                botas: botasRes?.data || {},
+                guantes: guantesRes?.data || {},
+                eppEquipo: equipoRes?.data || [],
+                herramientas: herramientasRes?.data || [],
+                logisticaRepuestos: repuestosRes?.data || [],
+                alimentacion: alimentacionRes?.data || [],
+                logisticaCampo: campoRes?.data || [],
+                limpiezaPersonal: limpiezaPersRes?.data || [],
+                limpiezaGeneral: limpiezaGenRes?.data || [],
+                medicamentos: medicamentosRes?.data || [],
+                rescateAnimal: rescateRes?.data || []
+            }
+        };
+    };
+
+    const safeAppendSheet = (wb, rows, title) => {
+        try {
+            const ws = XLSX.utils.json_to_sheet(rows);
+            XLSX.utils.book_append_sheet(wb, ws, title.slice(0, 31));
+        } catch (_) {
+            const fallback = Array.isArray(rows) ? rows.map((r, i) => ({ fila: i + 1, dato: JSON.stringify(r) })) : [{ dato: JSON.stringify(rows) }];
+            const ws = XLSX.utils.json_to_sheet(fallback);
+            XLSX.utils.book_append_sheet(wb, ws, title.slice(0, 31));
+        }
+    };
+
+    const objectToRows = (obj, keyCol = 'clave', valCol = 'valor') => {
+        if (!obj || typeof obj !== 'object') return [];
+        return Object.entries(obj).map(([k, v]) => ({ [keyCol]: k, [valCol]: v }));
+    };
+
+    const buildAndDownloadExcel = (brigada, data) => {
+        const wb = XLSX.utils.book_new();
+
+        const infoRows = Object.entries(brigada || {}).map(([k, v]) => ({ campo: k, valor: v }));
+        safeAppendSheet(wb, infoRows, 'Brigada');
+
+        if (Array.isArray(data.eppRopa) && data.eppRopa.length)      safeAppendSheet(wb, data.eppRopa, 'EPP Ropa');
+        if (data.botas && Object.keys(data.botas).length)            safeAppendSheet(wb, objectToRows(data.botas, 'talla', 'cantidad'), 'Botas');
+        if (data.guantes && Object.keys(data.guantes).length)        safeAppendSheet(wb, objectToRows(data.guantes, 'talla', 'cantidad'), 'Guantes');
+        if (Array.isArray(data.eppEquipo) && data.eppEquipo.length)  safeAppendSheet(wb, data.eppEquipo, 'EPP Equipo');
+        if (Array.isArray(data.herramientas) && data.herramientas.length) safeAppendSheet(wb, data.herramientas, 'Herramientas');
+        if (Array.isArray(data.logisticaRepuestos) && data.logisticaRepuestos.length) safeAppendSheet(wb, data.logisticaRepuestos, 'Logística/Repuestos');
+        if (Array.isArray(data.alimentacion) && data.alimentacion.length) safeAppendSheet(wb, data.alimentacion, 'Alimentación');
+        if (Array.isArray(data.logisticaCampo) && data.logisticaCampo.length) safeAppendSheet(wb, data.logisticaCampo, 'Logística/Campo');
+        if (Array.isArray(data.limpiezaPersonal) && data.limpiezaPersonal.length) safeAppendSheet(wb, data.limpiezaPersonal, 'Limpieza Personal');
+        if (Array.isArray(data.limpiezaGeneral) && data.limpiezaGeneral.length) safeAppendSheet(wb, data.limpiezaGeneral, 'Limpieza General');
+        if (Array.isArray(data.medicamentos) && data.medicamentos.length) safeAppendSheet(wb, data.medicamentos, 'Medicamentos');
+        if (Array.isArray(data.rescateAnimal) && data.rescateAnimal.length) safeAppendSheet(wb, data.rescateAnimal, 'Rescate Animal');
+
+        const fileName = `Brigada_${brigada?.id ?? 'sin_id'}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+    };
+
+    const exportBrigadaToExcel = async () => {
+        const id = brigadaId || resumenBrigada?.id;
+        if (!id) {
+            setSubmitStatus({ success: false, message: 'No hay brigada creada todavía. Guarda la información primero.' });
+            return;
+        }
+        try {
+            setDownloadingExcel(true);
+            const all = await fetchAllForExcel(id);
+            buildAndDownloadExcel(all.brigada, all.data);
+        } catch (e) {
+            setSubmitStatus({ success: false, message: 'No se pudo generar el Excel.' });
+        } finally {
+            setDownloadingExcel(false);
+        }
+    };
+
+
     const openResumenModal = async (brigadaIdToLoad) => {
         setShowResumenModal(true);
         setResumenLoading(true);
@@ -479,7 +586,7 @@ const BombForm = () => {
             ...prev,
             [name]: nextValue
         }));
-        
+
         // Clear error when field is edited
         if (formErrors[name]) {
             setFormErrors(prev => ({
@@ -492,7 +599,7 @@ const BombForm = () => {
     // Handlers específicos por sección para inputs controlados
     const handleEppRopaSizeChange = (item, sizeKey, value) => {
         setEppRopa(prev => ({
-                ...prev,
+            ...prev,
             [item]: { ...prev[item], [sizeKey]: Number(value) || 0 }
         }));
     };
@@ -540,17 +647,17 @@ const BombForm = () => {
     const validateSection = (sectionId) => {
         const section = SECTIONS.find(s => s.id === sectionId);
         if (!section || !section.required) return true;
-        
+
         const errors = {};
         let isValid = true;
-        
+
         section.required.forEach(field => {
             if (!formData[field]) {
                 errors[field] = 'Este campo es obligatorio';
                 isValid = false;
             }
         });
-        
+
         setFormErrors(errors);
         return isValid;
     };
@@ -567,25 +674,25 @@ const BombForm = () => {
     const saveSection = async (sectionId) => {
         const section = SECTIONS.find(s => s.id === sectionId);
         if (!section) return;
-        
+
         try {
             setIsSubmitting(true);
-            
+
             // 1) Datos de brigada
             if (sectionId === 'info') {
                 const dataToSend = {};
                 section.fields.forEach(field => {
                     dataToSend[field] = formData[field];
                 });
-                
+
                 const url = brigadaId ? `${API_BASE_URL}/${brigadaId}` : API_BASE_URL;
                 const method = brigadaId ? 'put' : 'post';
                 const response = await axios[method](url, dataToSend);
-                
+
                 if (!brigadaId && response.data.brigadaId) {
                     setBrigadaId(response.data.brigadaId);
                 }
-                
+
                 return response.data;
             } else if (sectionId === 'epp') {
                 // 2) EPP: ropa, botas, guantes y equipo
@@ -601,8 +708,8 @@ const BombForm = () => {
                     ['xs', 's', 'm', 'l', 'xl'].forEach(tallaKey => {
                         const cantidad = Number(tallas[tallaKey]) || 0;
                         if (cantidad > 0) {
-                        apiCalls.push(
-                            axios.post(`${API_BASE_URL}/${brigadaId}/epp-ropa`, {
+                            apiCalls.push(
+                                axios.post(`${API_BASE_URL}/${brigadaId}/epp-ropa`, {
                                     tipo: itemNombre,
                                     talla: tallaKey,
                                     cantidad,
@@ -631,8 +738,8 @@ const BombForm = () => {
                 });
 
                 // 2.3 Guantes: un solo registro agregado
-                        apiCalls.push(
-                            axios.post(`${API_BASE_URL}/${brigadaId}/guantes`, {
+                apiCalls.push(
+                    axios.post(`${API_BASE_URL}/${brigadaId}/guantes`, {
                         xs: Number(guantes.XS) || 0,
                         s: Number(guantes.S) || 0,
                         m: Number(guantes.M) || 0,
@@ -929,7 +1036,7 @@ const BombForm = () => {
     // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         // First save the current section
         if (!validateSection(activeSection)) {
             setSubmitStatus({
@@ -938,20 +1045,20 @@ const BombForm = () => {
             });
             return;
         }
-        
+
         try {
             setIsSubmitting(true);
             setSubmitStatus({ success: null, message: '' });
-            
+
             // Save current section
             await saveSection(activeSection);
-            
+
             // Mark section as completed
             setCompletedSections(prev => ({
                 ...prev,
                 [activeSection]: true
             }));
-            
+
             // Move to next section or complete
             const currentIndex = SECTIONS.findIndex(s => s.id === activeSection);
             if (currentIndex < SECTIONS.length - 1) {
@@ -968,6 +1075,7 @@ const BombForm = () => {
                     success: true,
                     message: '¡Formulario completado exitosamente!'
                 });
+                setShowDownloadModal(true);
             }
         } catch (error) {
             console.error('Error saving form:', error);
@@ -983,7 +1091,7 @@ const BombForm = () => {
     // Navigation buttons
     const renderNavigation = () => {
         const currentIndex = SECTIONS.findIndex(s => s.id === activeSection);
-        
+
         return (
             <div className="mt-8 flex justify-between">
                 <button
@@ -995,14 +1103,14 @@ const BombForm = () => {
                     }}
                     disabled={currentIndex === 0}
                     className={`px-4 py-2 border font-medium transition-colors rounded-md ${
-                        currentIndex === 0 
-                            ? 'border-neutral-300 text-neutral-400 cursor-not-allowed' 
+                        currentIndex === 0
+                            ? 'border-neutral-300 text-neutral-400 cursor-not-allowed'
                             : 'border-red-300 text-red-700 hover:bg-gradient-to-r hover:from-red-600 hover:to-orange-500 hover:text-white'
                     }`}
                 >
                     Anterior
                 </button>
-                
+
                 <div className="flex items-center space-x-4">
                     {submitStatus.message && (
                         <div className={`px-4 py-2 rounded-lg ${
@@ -1011,17 +1119,17 @@ const BombForm = () => {
                             {submitStatus.message}
                         </div>
                     )}
-                    
+
                     <button
                         type="submit"
                         disabled={isSubmitting}
                         className={`px-6 py-2 border font-medium transition-colors rounded-md ${
-                            isSubmitting 
-                                ? 'border-neutral-300 text-neutral-400 cursor-not-allowed' 
+                            isSubmitting
+                                ? 'border-neutral-300 text-neutral-400 cursor-not-allowed'
                                 : 'border-red-300 text-red-700 hover:bg-gradient-to-r hover:from-orange-500 hover:to-red-600 hover:text-white'
                         }`}
                     >
-                        {currentIndex === SECTIONS.length - 1 
+                        {currentIndex === SECTIONS.length - 1
                             ? (isSubmitting ? 'Enviando...' : 'Finalizar')
                             : (isSubmitting ? 'Guardando...' : 'Siguiente')}
                     </button>
@@ -1235,8 +1343,8 @@ const BombForm = () => {
                                                             ariaLabel={`${itemNombre} talla ${sizeKey.toUpperCase()}`}
                                                         />
                                                     </td>
-                                            ))}
-                                            <td className="px-4 py-3">
+                                                ))}
+                                                <td className="px-4 py-3">
                                                     <input
                                                         type="text"
                                                         className="w-full px-2 py-1 border border-gray-300 rounded"
@@ -1245,8 +1353,8 @@ const BombForm = () => {
                                                         maxLength={400}
                                                         onChange={(e) => handleEppRopaObsChange(itemNombre, e.target.value)}
                                                     />
-                                            </td>
-                                        </tr>
+                                                </td>
+                                            </tr>
                                         ))}
                                         </tbody>
                                     </table>
@@ -1956,84 +2064,84 @@ const BombForm = () => {
                                 <div className="overflow-x-auto border border-red-100 rounded-xl">
                                     <table className="min-w-full text-sm">
                                         <thead className="sticky top-0 bg-white">
-                                            <tr className="text-left border-b border-red-100">
-                                                {[
-                                                    { key: 'nombre', label: 'Nombre' },
-                                                    { key: 'nombrecomandante', label: 'Comandante' },
-                                                    { key: 'cantidadactivos', label: 'Activos' },
-                                                    { key: 'celularcomandante', label: 'Tel. Comandante' }
-                                                ].map(col => (
-                                                    <th key={col.key} className="py-2 px-3 font-medium text-neutral-700">
-                                                        <button type="button" className="inline-flex items-center gap-1 hover:underline" onClick={() => handleSortBrigadas(col.key)}>
-                                                            {col.label}
-                                                            {brigadasSortKey === col.key && (
-                                                                <span className="text-neutral-400">{brigadasSortDir === 'asc' ? '▲' : '▼'}</span>
-                                                            )}
-                                                        </button>
-                                                    </th>
-                                                ))}
-                                                <th className="py-2 px-3 font-medium text-neutral-700">Acciones</th>
-                                            </tr>
+                                        <tr className="text-left border-b border-red-100">
+                                            {[
+                                                { key: 'nombre', label: 'Nombre' },
+                                                { key: 'nombrecomandante', label: 'Comandante' },
+                                                { key: 'cantidadactivos', label: 'Activos' },
+                                                { key: 'celularcomandante', label: 'Tel. Comandante' }
+                                            ].map(col => (
+                                                <th key={col.key} className="py-2 px-3 font-medium text-neutral-700">
+                                                    <button type="button" className="inline-flex items-center gap-1 hover:underline" onClick={() => handleSortBrigadas(col.key)}>
+                                                        {col.label}
+                                                        {brigadasSortKey === col.key && (
+                                                            <span className="text-neutral-400">{brigadasSortDir === 'asc' ? '▲' : '▼'}</span>
+                                                        )}
+                                                    </button>
+                                                </th>
+                                            ))}
+                                            <th className="py-2 px-3 font-medium text-neutral-700">Acciones</th>
+                                        </tr>
                                         </thead>
                                         <tbody>
-                                            {brigadas
-                                                .filter(b => {
-                                                    if (!brigadasQuery.trim()) return true;
-                                                    const q = brigadasQuery.toLowerCase();
-                                                    return (
-                                                        (b.nombre || '').toLowerCase().includes(q) ||
-                                                        (b.nombrecomandante || '').toLowerCase().includes(q) ||
-                                                        (b.celularcomandante || '').toLowerCase().includes(q)
-                                                    );
-                                                })
-                                                .sort((a,b) => {
-                                                    const dir = brigadasSortDir === 'asc' ? 1 : -1;
-                                                    const ka = a[brigadasSortKey] ?? '';
-                                                    const kb = b[brigadasSortKey] ?? '';
-                                                    if (typeof ka === 'number' && typeof kb === 'number') return (ka - kb) * dir;
-                                                    return String(ka).localeCompare(String(kb)) * dir;
-                                                })
-                                                .map((b, idx) => (
-                                                    <tr key={b.id} className={idx % 2 === 1 ? 'bg-red-50/40' : ''}>
-                                                        <td className="py-2 px-3">{b.nombre || '-'}</td>
-                                                        <td className="py-2 px-3">{b.nombrecomandante || '-'}</td>
-                                                        <td className="py-2 px-3">{b.cantidadactivos ?? '-'}</td>
-                                                        <td className="py-2 px-3">{b.celularcomandante || '-'}</td>
-                                                        <td className="py-2 px-3">
-                                                            <div className="flex flex-wrap gap-2">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleEditBrigada(b.id)}
-                                                                    className="px-3 py-1 border border-neutral-300 rounded-md hover:bg-neutral-100"
-                                                                    aria-label={`Editar brigada ${b.nombre}`}
-                                                                >
-                                                                    Editar
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handlePedirMasItems(b.id, 'epp')}
-                                                                    className="px-3 py-1 border border-red-300 text-red-700 rounded-md hover:bg-red-50"
-                                                                    aria-label={`Pedir más ítems para ${b.nombre}`}
-                                                                >
-                                                                    Pedir más ítems
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => openResumenModal(b.id)}
-                                                                    className="px-3 py-1 border border-neutral-300 rounded-md hover:bg-neutral-100"
-                                                                    aria-label={`Ver resumen de ${b.nombre}`}
-                                                                >
-                                                                    Ver resumen
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            {brigadas.filter(b => (brigadasQuery.trim() ? ((b.nombre||'').toLowerCase().includes(brigadasQuery.toLowerCase()) || (b.nombrecomandante||'').toLowerCase().includes(brigadasQuery.toLowerCase()) || (b.celularcomandante||'').toLowerCase().includes(brigadasQuery.toLowerCase())) : true)).length === 0 && (
-                                                <tr>
-                                                    <td className="py-4 text-neutral-500" colSpan={5}>No hay brigadas que coincidan con la búsqueda.</td>
+                                        {brigadas
+                                            .filter(b => {
+                                                if (!brigadasQuery.trim()) return true;
+                                                const q = brigadasQuery.toLowerCase();
+                                                return (
+                                                    (b.nombre || '').toLowerCase().includes(q) ||
+                                                    (b.nombrecomandante || '').toLowerCase().includes(q) ||
+                                                    (b.celularcomandante || '').toLowerCase().includes(q)
+                                                );
+                                            })
+                                            .sort((a,b) => {
+                                                const dir = brigadasSortDir === 'asc' ? 1 : -1;
+                                                const ka = a[brigadasSortKey] ?? '';
+                                                const kb = b[brigadasSortKey] ?? '';
+                                                if (typeof ka === 'number' && typeof kb === 'number') return (ka - kb) * dir;
+                                                return String(ka).localeCompare(String(kb)) * dir;
+                                            })
+                                            .map((b, idx) => (
+                                                <tr key={b.id} className={idx % 2 === 1 ? 'bg-red-50/40' : ''}>
+                                                    <td className="py-2 px-3">{b.nombre || '-'}</td>
+                                                    <td className="py-2 px-3">{b.nombrecomandante || '-'}</td>
+                                                    <td className="py-2 px-3">{b.cantidadactivos ?? '-'}</td>
+                                                    <td className="py-2 px-3">{b.celularcomandante || '-'}</td>
+                                                    <td className="py-2 px-3">
+                                                        <div className="flex flex-wrap gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleEditBrigada(b.id)}
+                                                                className="px-3 py-1 border border-neutral-300 rounded-md hover:bg-neutral-100"
+                                                                aria-label={`Editar brigada ${b.nombre}`}
+                                                            >
+                                                                Editar
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handlePedirMasItems(b.id, 'epp')}
+                                                                className="px-3 py-1 border border-red-300 text-red-700 rounded-md hover:bg-red-50"
+                                                                aria-label={`Pedir más ítems para ${b.nombre}`}
+                                                            >
+                                                                Pedir más ítems
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => openResumenModal(b.id)}
+                                                                className="px-3 py-1 border border-neutral-300 rounded-md hover:bg-neutral-100"
+                                                                aria-label={`Ver resumen de ${b.nombre}`}
+                                                            >
+                                                                Ver resumen
+                                                            </button>
+                                                        </div>
+                                                    </td>
                                                 </tr>
-                                            )}
+                                            ))}
+                                        {brigadas.filter(b => (brigadasQuery.trim() ? ((b.nombre||'').toLowerCase().includes(brigadasQuery.toLowerCase()) || (b.nombrecomandante||'').toLowerCase().includes(brigadasQuery.toLowerCase()) || (b.celularcomandante||'').toLowerCase().includes(brigadasQuery.toLowerCase())) : true)).length === 0 && (
+                                            <tr>
+                                                <td className="py-4 text-neutral-500" colSpan={5}>No hay brigadas que coincidan con la búsqueda.</td>
+                                            </tr>
+                                        )}
                                         </tbody>
                                     </table>
                                 </div>
@@ -2132,31 +2240,31 @@ const BombForm = () => {
                                         <div className="overflow-x-auto">
                                             <table className="min-w-full text-sm">
                                                 <thead>
-                                                    <tr className="border-b border-neutral-200 text-left">
-                                                        <th className="py-2 pr-4">Prenda</th>
-                                                        <th className="py-2 pr-4">XS</th>
-                                                        <th className="py-2 pr-4">S</th>
-                                                        <th className="py-2 pr-4">M</th>
-                                                        <th className="py-2 pr-4">L</th>
-                                                        <th className="py-2 pr-4">XL</th>
-                                                        <th className="py-2 pr-4">Obs.</th>
-                                                    </tr>
+                                                <tr className="border-b border-neutral-200 text-left">
+                                                    <th className="py-2 pr-4">Prenda</th>
+                                                    <th className="py-2 pr-4">XS</th>
+                                                    <th className="py-2 pr-4">S</th>
+                                                    <th className="py-2 pr-4">M</th>
+                                                    <th className="py-2 pr-4">L</th>
+                                                    <th className="py-2 pr-4">XL</th>
+                                                    <th className="py-2 pr-4">Obs.</th>
+                                                </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {resumenData.eppRopa.length === 0 && (
-                                                        <tr><td className="py-3 text-neutral-500" colSpan={7}>Sin registros</td></tr>
-                                                    )}
-                                                    {resumenData.eppRopa.map((r) => (
-                                                        <tr key={`${r.item}-${r.id || Math.random()}`} className="border-b border-neutral-100">
-                                                            <td className="py-2 pr-4">{r.item}</td>
-                                                            <td className="py-2 pr-4">{r.xs ?? 0}</td>
-                                                            <td className="py-2 pr-4">{r.s ?? 0}</td>
-                                                            <td className="py-2 pr-4">{r.m ?? 0}</td>
-                                                            <td className="py-2 pr-4">{r.l ?? 0}</td>
-                                                            <td className="py-2 pr-4">{r.xl ?? 0}</td>
-                                                            <td className="py-2 pr-4">{r.observaciones || '-'}</td>
-                                                        </tr>
-                                                    ))}
+                                                {resumenData.eppRopa.length === 0 && (
+                                                    <tr><td className="py-3 text-neutral-500" colSpan={7}>Sin registros</td></tr>
+                                                )}
+                                                {resumenData.eppRopa.map((r) => (
+                                                    <tr key={`${r.item}-${r.id || Math.random()}`} className="border-b border-neutral-100">
+                                                        <td className="py-2 pr-4">{r.item}</td>
+                                                        <td className="py-2 pr-4">{r.xs ?? 0}</td>
+                                                        <td className="py-2 pr-4">{r.s ?? 0}</td>
+                                                        <td className="py-2 pr-4">{r.m ?? 0}</td>
+                                                        <td className="py-2 pr-4">{r.l ?? 0}</td>
+                                                        <td className="py-2 pr-4">{r.xl ?? 0}</td>
+                                                        <td className="py-2 pr-4">{r.observaciones || '-'}</td>
+                                                    </tr>
+                                                ))}
                                                 </tbody>
                                             </table>
                                         </div>
@@ -2206,30 +2314,30 @@ const BombForm = () => {
                                         <div className="overflow-x-auto">
                                             <table className="min-w-full text-sm">
                                                 <thead>
-                                                    <tr className="border-b border-neutral-200 text-left">
-                                                        <th className="py-2 pr-4">37</th>
-                                                        <th className="py-2 pr-4">38</th>
-                                                        <th className="py-2 pr-4">39</th>
-                                                        <th className="py-2 pr-4">40</th>
-                                                        <th className="py-2 pr-4">41</th>
-                                                        <th className="py-2 pr-4">42</th>
-                                                        <th className="py-2 pr-4">43</th>
-                                                        <th className="py-2 pr-4">Otra</th>
-                                                        <th className="py-2 pr-4">Obs.</th>
-                                                    </tr>
+                                                <tr className="border-b border-neutral-200 text-left">
+                                                    <th className="py-2 pr-4">37</th>
+                                                    <th className="py-2 pr-4">38</th>
+                                                    <th className="py-2 pr-4">39</th>
+                                                    <th className="py-2 pr-4">40</th>
+                                                    <th className="py-2 pr-4">41</th>
+                                                    <th className="py-2 pr-4">42</th>
+                                                    <th className="py-2 pr-4">43</th>
+                                                    <th className="py-2 pr-4">Otra</th>
+                                                    <th className="py-2 pr-4">Obs.</th>
+                                                </tr>
                                                 </thead>
                                                 <tbody>
-                                                    <tr>
-                                                        <td className="py-2 pr-4">{resumenData.botas?.talla37 ?? 0}</td>
-                                                        <td className="py-2 pr-4">{resumenData.botas?.talla38 ?? 0}</td>
-                                                        <td className="py-2 pr-4">{resumenData.botas?.talla39 ?? 0}</td>
-                                                        <td className="py-2 pr-4">{resumenData.botas?.talla40 ?? 0}</td>
-                                                        <td className="py-2 pr-4">{resumenData.botas?.talla41 ?? 0}</td>
-                                                        <td className="py-2 pr-4">{resumenData.botas?.talla42 ?? 0}</td>
-                                                        <td className="py-2 pr-4">{resumenData.botas?.talla43 ?? 0}</td>
-                                                        <td className="py-2 pr-4">{resumenData.botas?.otratalla || '-'}</td>
-                                                        <td className="py-2 pr-4">{resumenData.botas?.observaciones || '-'}</td>
-                                                    </tr>
+                                                <tr>
+                                                    <td className="py-2 pr-4">{resumenData.botas?.talla37 ?? 0}</td>
+                                                    <td className="py-2 pr-4">{resumenData.botas?.talla38 ?? 0}</td>
+                                                    <td className="py-2 pr-4">{resumenData.botas?.talla39 ?? 0}</td>
+                                                    <td className="py-2 pr-4">{resumenData.botas?.talla40 ?? 0}</td>
+                                                    <td className="py-2 pr-4">{resumenData.botas?.talla41 ?? 0}</td>
+                                                    <td className="py-2 pr-4">{resumenData.botas?.talla42 ?? 0}</td>
+                                                    <td className="py-2 pr-4">{resumenData.botas?.talla43 ?? 0}</td>
+                                                    <td className="py-2 pr-4">{resumenData.botas?.otratalla || '-'}</td>
+                                                    <td className="py-2 pr-4">{resumenData.botas?.observaciones || '-'}</td>
+                                                </tr>
                                                 </tbody>
                                             </table>
                                         </div>
@@ -2272,26 +2380,26 @@ const BombForm = () => {
                                         <div className="overflow-x-auto">
                                             <table className="min-w-full text-sm">
                                                 <thead>
-                                                    <tr className="border-b border-neutral-200 text-left">
-                                                        <th className="py-2 pr-4">XS</th>
-                                                        <th className="py-2 pr-4">S</th>
-                                                        <th className="py-2 pr-4">M</th>
-                                                        <th className="py-2 pr-4">L</th>
-                                                        <th className="py-2 pr-4">XL</th>
-                                                        <th className="py-2 pr-4">XXL</th>
-                                                        <th className="py-2 pr-4">Otra</th>
-                                                    </tr>
+                                                <tr className="border-b border-neutral-200 text-left">
+                                                    <th className="py-2 pr-4">XS</th>
+                                                    <th className="py-2 pr-4">S</th>
+                                                    <th className="py-2 pr-4">M</th>
+                                                    <th className="py-2 pr-4">L</th>
+                                                    <th className="py-2 pr-4">XL</th>
+                                                    <th className="py-2 pr-4">XXL</th>
+                                                    <th className="py-2 pr-4">Otra</th>
+                                                </tr>
                                                 </thead>
                                                 <tbody>
-                                                    <tr>
-                                                        <td className="py-2 pr-4">{resumenData.guantes?.xs ?? 0}</td>
-                                                        <td className="py-2 pr-4">{resumenData.guantes?.s ?? 0}</td>
-                                                        <td className="py-2 pr-4">{resumenData.guantes?.m ?? 0}</td>
-                                                        <td className="py-2 pr-4">{resumenData.guantes?.l ?? 0}</td>
-                                                        <td className="py-2 pr-4">{resumenData.guantes?.xl ?? 0}</td>
-                                                        <td className="py-2 pr-4">{resumenData.guantes?.xxl ?? 0}</td>
-                                                        <td className="py-2 pr-4">{resumenData.guantes?.otratalla || '-'}</td>
-                                                    </tr>
+                                                <tr>
+                                                    <td className="py-2 pr-4">{resumenData.guantes?.xs ?? 0}</td>
+                                                    <td className="py-2 pr-4">{resumenData.guantes?.s ?? 0}</td>
+                                                    <td className="py-2 pr-4">{resumenData.guantes?.m ?? 0}</td>
+                                                    <td className="py-2 pr-4">{resumenData.guantes?.l ?? 0}</td>
+                                                    <td className="py-2 pr-4">{resumenData.guantes?.xl ?? 0}</td>
+                                                    <td className="py-2 pr-4">{resumenData.guantes?.xxl ?? 0}</td>
+                                                    <td className="py-2 pr-4">{resumenData.guantes?.otratalla || '-'}</td>
+                                                </tr>
                                                 </tbody>
                                             </table>
                                         </div>
@@ -2367,23 +2475,23 @@ const BombForm = () => {
                                             <div className="overflow-x-auto">
                                                 <table className="min-w-full text-sm">
                                                     <thead>
-                                                        <tr className="border-b border-neutral-200 text-left">
-                                                            <th className="py-2 pr-4">Ítem</th>
-                                                            <th className="py-2 pr-4">{section.inputShape.includes('costo') ? 'Costo' : 'Cantidad'}</th>
-                                                            <th className="py-2 pr-4">Obs.</th>
-                                                        </tr>
+                                                    <tr className="border-b border-neutral-200 text-left">
+                                                        <th className="py-2 pr-4">Ítem</th>
+                                                        <th className="py-2 pr-4">{section.inputShape.includes('costo') ? 'Costo' : 'Cantidad'}</th>
+                                                        <th className="py-2 pr-4">Obs.</th>
+                                                    </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {resumenData[section.key].length === 0 && (
-                                                            <tr><td className="py-3 text-neutral-500" colSpan={3}>Sin registros</td></tr>
-                                                        )}
-                                                        {resumenData[section.key].map((r) => (
-                                                            <tr key={`${r.item}-${r.id || Math.random()}`} className="border-b border-neutral-100">
-                                                                <td className="py-2 pr-4">{r.item}</td>
-                                                                <td className="py-2 pr-4">{(section.inputShape.includes('costo') ? r.costo : r.cantidad) ?? 0}</td>
-                                                                <td className="py-2 pr-4">{r.observaciones || '-'}</td>
-                                                            </tr>
-                                                        ))}
+                                                    {resumenData[section.key].length === 0 && (
+                                                        <tr><td className="py-3 text-neutral-500" colSpan={3}>Sin registros</td></tr>
+                                                    )}
+                                                    {resumenData[section.key].map((r) => (
+                                                        <tr key={`${r.item}-${r.id || Math.random()}`} className="border-b border-neutral-100">
+                                                            <td className="py-2 pr-4">{r.item}</td>
+                                                            <td className="py-2 pr-4">{(section.inputShape.includes('costo') ? r.costo : r.cantidad) ?? 0}</td>
+                                                            <td className="py-2 pr-4">{r.observaciones || '-'}</td>
+                                                        </tr>
+                                                    ))}
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -2395,6 +2503,49 @@ const BombForm = () => {
                     </div>
                 </div>
             )}
+
+            {/* Modal: Descargar Excel al finalizar */}
+            {showDownloadModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div
+                        className="absolute inset-0 bg-black/60"
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Cerrar modal de descarga"
+                        onClick={() => setShowDownloadModal(false)}
+                        onKeyDown={(e) => { if (e.key === 'Escape' || e.key === 'Enter') setShowDownloadModal(false); }}
+                    />
+                    <div className="relative bg-white text-neutral-900 w-[90vw] max-w-md border border-neutral-200 rounded-xl shadow-xl">
+                        <div className="px-5 py-4 border-b border-neutral-200 bg-neutral-50">
+                            <h3 className="text-base font-semibold">Descargar Excel</h3>
+                        </div>
+                        <div className="p-5 space-y-3">
+                            <p className="text-sm text-neutral-700">
+                                ¿Deseas descargar un archivo Excel (.xlsx) con <b>toda</b> la información registrada de esta brigada,
+                                incluyendo EPP, herramientas, logística, alimentación, limpieza, medicamentos y rescate animal?
+                            </p>
+                        </div>
+                        <div className="px-5 py-4 border-t border-neutral-200 bg-neutral-50 flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowDownloadModal(false)}
+                                className="px-4 py-2 border border-neutral-300 rounded-md text-neutral-700 hover:bg-neutral-100"
+                            >
+                                No, gracias
+                            </button>
+                            <button
+                                type="button"
+                                onClick={exportBrigadaToExcel}
+                                disabled={downloadingExcel}
+                                className="px-4 py-2 rounded-md bg-gradient-to-r from-red-500 to-orange-500 text-white font-medium disabled:opacity-60"
+                            >
+                                {downloadingExcel ? 'Generando…' : 'Descargar Excel'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </form>
     );
 };
