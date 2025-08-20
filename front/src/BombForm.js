@@ -7,7 +7,7 @@ import Label from './components/common/Label';
 import NumberStepper from './components/common/NumberStepper';
 
 const API_BASE_URL = 'https://brigadas.onrender.com/api/brigada';
-
+        
 // Configuración de secciones con endpoints y reglas básicas
 const SECTIONS = [
     {
@@ -64,6 +64,13 @@ const SECTIONS = [
         name: 'Rescate Animal',
         endpoint: '/rescate-animal',
         fields: ['item', 'cantidad', 'observaciones']
+    },
+    // Sección final de Resumen y edición: permite ver y ajustar todo antes de finalizar
+    {
+        id: 'summary',
+        name: 'Resumen',
+        endpoint: null,
+        fields: []
     }
 ];
 
@@ -930,7 +937,13 @@ const BombForm = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        // First save the current section
+        // Si estamos en Resumen, solo mostramos finalización sin re-enviar todas las secciones
+        if (activeSection === 'summary') {
+            setSubmitStatus({ success: true, message: '¡Formulario completado exitosamente!' });
+            return;
+        }
+
+        // Guardar la sección actual
         if (!validateSection(activeSection)) {
             setSubmitStatus({
                 success: false,
@@ -1460,6 +1473,209 @@ const BombForm = () => {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                )}
+                {/* Resumen final con edición rápida */}
+                {activeSection === 'summary' && (
+                    <div className="space-y-8">
+                        <h2 className="text-xl font-semibold tracking-tight">Resumen y edición rápida</h2>
+
+                        {/* Datos básicos de brigada */}
+                        <div className="border border-neutral-200 rounded-md">
+                            <div className="px-4 py-2 border-b border-neutral-200 bg-neutral-50 flex items-center justify-between">
+                                <h3 className="text-sm font-semibold">Datos de la Brigada</h3>
+                                <button type="button" className="px-3 py-1 text-sm border border-neutral-300 rounded-md hover:bg-neutral-100" onClick={() => goToSection('info')} aria-label="Editar datos de brigada">
+                                    Editar en sección
+                                </button>
+                            </div>
+                            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <Label>Nombre</Label>
+                                    <Input name="nombre" value={formData.nombre} onChange={handleInputChange} placeholder="Nombre de la brigada" />
+                                </div>
+                                <div>
+                                    <Label>Activos</Label>
+                                    <NumberStepper value={formData.cantidadactivos} onChange={(val) => handleInputChange({ target: { name: 'cantidadactivos', value: String(val), type: 'number' } })} min={0} step={1} ariaLabel="Cantidad de bomberos activos" />
+                                </div>
+                                <div>
+                                    <Label>Comandante</Label>
+                                    <Input name="nombrecomandante" value={formData.nombrecomandante} onChange={handleInputChange} placeholder="Nombre del comandante" />
+                                </div>
+                                <div>
+                                    <Label>Celular comandante</Label>
+                                    <Input name="celularcomandante" value={formData.celularcomandante} onChange={handleInputChange} placeholder="Celular" />
+                                </div>
+                                <div>
+                                    <Label>Encargado de logística</Label>
+                                    <Input name="encargadologistica" value={formData.encargadologistica} onChange={handleInputChange} placeholder="Nombre del encargado" />
+                                </div>
+                                <div>
+                                    <Label>Celular logística</Label>
+                                    <Input name="celularlogistica" value={formData.celularlogistica} onChange={handleInputChange} placeholder="Celular" />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <Label>Número de emergencia</Label>
+                                    <Input name="numerosemergencia" value={formData.numerosemergencia} onChange={handleInputChange} placeholder="Número de emergencia" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* EPP Ropa */}
+                        <div className="border border-neutral-200 rounded-md">
+                            <div className="px-4 py-2 border-b border-neutral-200 bg-neutral-50 flex items-center justify-between">
+                                <h3 className="text-sm font-semibold">EPP Ropa</h3>
+                                <button type="button" className="px-3 py-1 text-sm border border-neutral-300 rounded-md hover:bg-neutral-100" onClick={() => goToSection('epp')} aria-label="Editar EPP Ropa en sección">
+                                    Editar en sección
+                                </button>
+                            </div>
+                            <div className="p-4 overflow-x-auto">
+                                <table className="min-w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-neutral-200 text-left">
+                                            <th className="py-2 pr-4">Prenda</th>
+                                            <th className="py-2 pr-4">XS</th>
+                                            <th className="py-2 pr-4">S</th>
+                                            <th className="py-2 pr-4">M</th>
+                                            <th className="py-2 pr-4">L</th>
+                                            <th className="py-2 pr-4">XL</th>
+                                            <th className="py-2 pr-4">Obs.</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {Object.entries(eppRopa).map(([itemNombre, tallas]) => {
+                                            const total = (tallas.xs||0)+(tallas.s||0)+(tallas.m||0)+(tallas.l||0)+(tallas.xl||0);
+                                            if (total <= 0 && !(tallas.observaciones||'').trim()) return null;
+                                            return (
+                                                <tr key={itemNombre} className="border-b border-neutral-100">
+                                                    <td className="py-2 pr-4">{itemNombre}</td>
+                                                    {['xs','s','m','l','xl'].map(sizeKey => (
+                                                        <td key={`${itemNombre}-${sizeKey}`} className="py-2 pr-4">
+                                                            <NumberStepper value={tallas[sizeKey]} onChange={(val) => handleEppRopaSizeChange(itemNombre, sizeKey, val)} min={0} step={1} ariaLabel={`${itemNombre} talla ${sizeKey.toUpperCase()}`} />
+                                                        </td>
+                                                    ))}
+                                                    <td className="py-2 pr-4">
+                                                        <input type="text" className="w-48 border border-neutral-300 rounded-md px-2 py-1" value={tallas.observaciones} onChange={(e) => handleEppRopaObsChange(itemNombre, e.target.value)} placeholder="Observaciones" />
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Botas */}
+                        <div className="border border-neutral-200 rounded-md">
+                            <div className="px-4 py-2 border-b border-neutral-200 bg-neutral-50 flex items-center justify-between">
+                                <h3 className="text-sm font-semibold">Botas</h3>
+                                <button type="button" className="px-3 py-1 text-sm border border-neutral-300 rounded-md hover:bg-neutral-100" onClick={() => goToSection('epp')} aria-label="Editar Botas en sección">
+                                    Editar en sección
+                                </button>
+                            </div>
+                            <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {['37','38','39','40','41','42','43','otra'].map(size => (
+                                    <div key={`summary-botas-${size}`} className="flex items-center gap-2">
+                                        <span className="w-24 text-sm">Talla {size === 'otra' ? 'Otra' : size}</span>
+                                        <NumberStepper value={botas[size]} onChange={(val) => handleBotasChange(size, val)} min={0} step={1} ariaLabel={`Botas talla ${size}`} />
+                                    </div>
+                                ))}
+                                <div className="col-span-full">
+                                    <input type="text" className="w-full border border-neutral-300 rounded-md px-2 py-1" value={botas.otratalla} onChange={(e) => handleBotasOtraTallaText(e.target.value)} placeholder="Otra talla (texto)" />
+                                </div>
+                                <div className="col-span-full">
+                                    <input type="text" className="w-full border border-neutral-300 rounded-md px-2 py-1" value={botas.observaciones} onChange={(e) => handleBotasObsChange(e.target.value)} placeholder="Observaciones" />
+                                </div>
+                            </div>
+                            <div className="px-4 pb-4 text-xs text-neutral-500">Nota: Las reducciones de botas podrían requerir ajuste manual según disponibilidad del backend.</div>
+                        </div>
+
+                        {/* Guantes */}
+                        <div className="border border-neutral-200 rounded-md">
+                            <div className="px-4 py-2 border-b border-neutral-200 bg-neutral-50 flex items-center justify-between">
+                                <h3 className="text-sm font-semibold">Guantes</h3>
+                                <button type="button" className="px-3 py-1 text-sm border border-neutral-300 rounded-md hover:bg-neutral-100" onClick={() => goToSection('epp')} aria-label="Editar Guantes en sección">
+                                    Editar en sección
+                                </button>
+                            </div>
+                            <div className="p-4 grid grid-cols-2 md:grid-cols-3 gap-4">
+                                {GUANTES_SIZES.map(talla => (
+                                    <div key={`summary-guantes-${talla}`} className="flex items-center">
+                                        <span className="w-24 text-sm">Talla {talla}</span>
+                                        <NumberStepper value={guantes[talla]} onChange={(val) => handleGuantesChange(talla, val)} min={0} step={1} ariaLabel={`Guantes talla ${talla}`} />
+                                    </div>
+                                ))}
+                                <div className="col-span-full">
+                                    <input type="text" className="w-full border border-neutral-300 rounded-md px-2 py-1" value={guantes.otratalla || ''} onChange={(e) => handleGuantesOtraTallaText(e.target.value)} placeholder="Otra talla (texto)" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Listas genéricas con cantidades */}
+                        {[{ key: 'eppEquipo', title: 'EPP Equipo', setter: setEppEquipo, data: eppEquipo, custom: eppEquipoCustom, setCustom: setEppEquipoCustom, isCost: false, sectionId: 'epp' },
+                          { key: 'herramientas', title: 'Herramientas', setter: setHerramientas, data: herramientas, custom: herramientasCustom, setCustom: setHerramientasCustom, isCost: false, sectionId: 'tools' },
+                          { key: 'logisticaRepuestos', title: 'Logística Repuestos', setter: setLogisticaRepuestos, data: logisticaRepuestos, custom: logisticaRepuestosCustom, setCustom: setLogisticaRepuestosCustom, isCost: true, sectionId: 'logistics' },
+                          { key: 'alimentacion', title: 'Alimentación', setter: setAlimentacion, data: alimentacion, custom: alimentacionCustom, setCustom: setAlimentacionCustom, isCost: false, sectionId: 'food' },
+                          { key: 'logisticaCampo', title: 'Logística Campo', setter: setLogisticaCampo, data: logisticaCampo, custom: logisticaCampoCustom, setCustom: setLogisticaCampoCustom, isCost: false, sectionId: 'camp' },
+                          { key: 'limpiezaPersonal', title: 'Limpieza Personal', setter: setLimpiezaPersonal, data: limpiezaPersonal, custom: limpiezaPersonalCustom, setCustom: setLimpiezaPersonalCustom, isCost: false, sectionId: 'hygiene' },
+                          { key: 'limpiezaGeneral', title: 'Limpieza General', setter: setLimpiezaGeneral, data: limpiezaGeneral, custom: limpiezaGeneralCustom, setCustom: setLimpiezaGeneralCustom, isCost: false, sectionId: 'hygiene' },
+                          { key: 'medicamentos', title: 'Medicamentos', setter: setMedicamentos, data: medicamentos, custom: medicamentosCustom, setCustom: setMedicamentosCustom, isCost: false, sectionId: 'meds' },
+                          { key: 'rescateAnimal', title: 'Rescate Animal', setter: setRescateAnimal, data: rescateAnimal, custom: rescateAnimalCustom, setCustom: setRescateAnimalCustom, isCost: false, sectionId: 'animals' }].map(cfg => (
+                            <div key={`summary-${cfg.key}`} className="border border-neutral-200 rounded-md">
+                                <div className="px-4 py-2 border-b border-neutral-200 bg-neutral-50 flex items-center justify-between">
+                                    <h3 className="text-sm font-semibold">{cfg.title}</h3>
+                                    <button type="button" className="px-3 py-1 text-sm border border-neutral-300 rounded-md hover:bg-neutral-100" onClick={() => goToSection(cfg.sectionId)} aria-label={`Editar ${cfg.title} en sección`}>
+                                        Editar en sección
+                                    </button>
+                                </div>
+                                <div className="p-4 space-y-3">
+                                    {/* Ítems de catálogo con cantidad/costo > 0 */}
+                                    {Object.entries(cfg.data).filter(([, data]) => (cfg.isCost ? Number(data.costo)||0 : Number(data.cantidad)||0) > 0).length === 0 && (
+                                        <p className="text-sm text-neutral-500">Sin registros.</p>
+                                    )}
+                                    {Object.entries(cfg.data).filter(([, data]) => (cfg.isCost ? Number(data.costo)||0 : Number(data.cantidad)||0) > 0).map(([itemNombre, data]) => (
+                                        <div key={`${cfg.key}-${itemNombre}`} className="flex items-center justify-between gap-3">
+                                            <span className="text-sm w-56">{itemNombre}</span>
+                                            <div className="flex items-center gap-2">
+                                                {cfg.isCost ? (
+                                                    <input type="number" min="0" className="w-28 border border-neutral-300 rounded-md px-2 py-1 text-sm" value={data.costo} onChange={(e) => cfg.setter(prev => ({ ...prev, [itemNombre]: { ...prev[itemNombre], costo: Number(e.target.value)||0 } }))} aria-label={`Costo ${itemNombre}`} />
+                                                ) : (
+                                                    <NumberStepper value={data.cantidad} onChange={(val) => handleListQuantityChange(cfg.setter)(itemNombre, val)} min={0} step={1} ariaLabel={`Cantidad ${itemNombre}`} />
+                                                )}
+                                                <input type="text" className="w-56 border border-neutral-300 rounded-md px-2 py-1 text-sm" value={data.observaciones} onChange={(e) => handleListObsChange(cfg.setter)(itemNombre, e.target.value)} placeholder="Observaciones" />
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    {/* Ítems personalizados */}
+                                    {cfg.custom.length > 0 && (
+                                        <div className="pt-2 border-t border-neutral-200">
+                                            <p className="text-xs text-neutral-500 mb-2">Ítems personalizados</p>
+                                            <div className="space-y-2">
+                                                {cfg.custom.map((row, idx) => (
+                                                    <div key={`${cfg.key}-custom-${idx}`} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                                                        <input type="text" className="px-2 py-1 border border-neutral-300 rounded" value={row.item} onChange={(e) => cfg.setCustom(prev => prev.map((r,i) => i===idx ? { ...r, item: e.target.value } : r))} placeholder="Ítem" />
+                                                        {cfg.isCost ? (
+                                                            <input type="number" min="0" className="px-2 py-1 border border-neutral-300 rounded" value={row.costo||0} onChange={(e) => cfg.setCustom(prev => prev.map((r,i) => i===idx ? { ...r, costo: Number(e.target.value)||0 } : r))} placeholder="Costo" />
+                                                        ) : (
+                                                            <input type="number" min="0" className="px-2 py-1 border border-neutral-300 rounded" value={row.cantidad||0} onChange={(e) => cfg.setCustom(prev => prev.map((r,i) => i===idx ? { ...r, cantidad: Number(e.target.value)||0 } : r))} placeholder="Cantidad" />
+                                                        )}
+                                                        <input type="text" className="px-2 py-1 border border-neutral-300 rounded md:col-span-2" value={row.observaciones} onChange={(e) => cfg.setCustom(prev => prev.map((r,i) => i===idx ? { ...r, observaciones: e.target.value } : r))} placeholder="Observaciones" />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+
+                        {/* Acciones finales */}
+                        <div className="flex items-center justify-between">
+                            <div className="text-sm text-neutral-600">Revisa y ajusta. Al presionar "Finalizar" se guardará todo.</div>
+                            <button type="submit" disabled={isSubmitting} className={`px-6 py-2 border font-medium transition-colors rounded-md ${isSubmitting ? 'border-neutral-300 text-neutral-400 cursor-not-allowed' : 'border-red-300 text-red-700 hover:bg-gradient-to-r hover:from-orange-500 hover:to-red-600 hover:text-white'}`}> 
+                                {isSubmitting ? 'Guardando...' : 'Finalizar'}
+                            </button>
                         </div>
                     </div>
                 )}
