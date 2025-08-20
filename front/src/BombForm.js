@@ -1082,6 +1082,7 @@ const BombForm = () => {
                     {SECTIONS.map(section => (
                         <Button
                             key={section.id}
+                            type="button" /* Previene submit accidental al cambiar de paso */
                             onClick={() => goToSection(section.id)}
                             size="sm"
                             variant={activeSection === section.id ? 'primary' : 'secondary'}
@@ -2055,14 +2056,13 @@ const BombForm = () => {
                                 <div key={item} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                                     <label className="text-sm font-medium text-gray-700">{item}</label>
                                     <div className="flex items-center space-x-2">
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            step="1"
-                                            className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
-                                            placeholder="Cantidad"
+                                        {/* Stepper accesible y consistente con el resto del formulario */}
+                                        <NumberStepper
                                             value={rescateAnimal[item].cantidad}
-                                            onChange={(e) => handleListQuantityChange(setRescateAnimal)(item, e.target.value)}
+                                            onChange={(val) => handleListQuantityChange(setRescateAnimal)(item, val)}
+                                            min={0}
+                                            step={1}
+                                            ariaLabel={`Cantidad ${item}`}
                                         />
                                         <input
                                             type="text"
