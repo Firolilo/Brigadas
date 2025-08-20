@@ -33,6 +33,7 @@ CREATE TABLE botas (
   talla42 INT NOT NULL DEFAULT 0,
   talla43 INT NOT NULL DEFAULT 0,
   otratalla VARCHAR(80) NULL,
+  observaciones VARCHAR(400) NULL,
   FOREIGN KEY (brigadaid) REFERENCES brigada(id)
 );
 

@@ -1061,7 +1061,7 @@ const BombForm = () => {
                     </div>
                     <div className="flex items-center gap-3">
                         <div className="bg-white bg-opacity-20 px-4 py-2 rounded-lg">
-                            <p className="text-white text-sm">Fecha: <span className="font-semibold">05/08/2025</span></p>
+                            <p className="text-white text-sm">Fecha: <span className="font-semibold">20/08/2025</span></p>
                         </div>
                         <Button
                             type="button"
